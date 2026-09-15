@@ -253,3 +253,184 @@ export function createFakeShadowMaterial(
     side: THREE.DoubleSide,
   })
 }
+
+// --- FBO Burn Simulation Material ---
+export const BurnSimMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    uTexture: { value: null }, // Previous frame's burn map
+    uInteractPos: { value: new THREE.Vector2(-1, -1) }, // Player UV position (0-1)
+    uDelta: { value: 0.016 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D uTexture;
+    uniform vec2 uInteractPos;
+    uniform float uDelta;
+    varying vec2 vUv;
+
+    void main() {
+      float currentBurn = texture2D(uTexture, vUv).r;
+      float dist = distance(vUv, uInteractPos);
+      float radius = 0.04;
+      
+      float newBurn = 0.0;
+      if (dist < radius) {
+          newBurn = 1.0 - smoothstep(0.0, radius, dist);
+          newBurn *= uDelta * 50.0; 
+      }
+
+      float finalBurn = clamp(currentBurn + newBurn, 0.0, 1.0);
+      gl_FragColor = vec4(finalBurn, 0.0, 0.0, 1.0);
+    }
+  `
+});
+
+// --- Grass Display Materials ---
+export const grassVertexShader = `
+  uniform float uTime;
+  uniform sampler2D uBurnMap;
+  
+  attribute vec3 instancePosition;
+  attribute float instanceRotation;
+  attribute float instanceScale;
+  attribute vec3 instanceColor;
+  
+  varying vec2 vUv;
+  varying vec3 vColor;
+  varying float vBurn;
+  varying vec3 vInstancePos;
+  varying vec3 vNormal;
+  
+  // rotate around Y axis
+  mat4 rotateY(float angle) {
+    float s = sin(angle);
+    float c = cos(angle);
+    return mat4(
+      c, 0.0, s, 0.0,
+      0.0, 1.0, 0.0, 0.0,
+      -s, 0.0, c, 0.0,
+      0.0, 0.0, 0.0, 1.0
+    );
+  }
+  
+  void main() {
+    vUv = uv;
+    vColor = instanceColor;
+    vInstancePos = instancePosition;
+    
+    // 1. Calculate the UV coordinate for this specific instance within the burn map
+    float planeSize = 50.0;
+    vec2 mapUv = vec2(
+        (instancePosition.x / planeSize) + 0.5,
+        1.0 - ((instancePosition.z / planeSize) + 0.5)
+    );
+
+    // 2. Sample the burn map at this instance's position
+    float burnAmount = texture2D(uBurnMap, mapUv).r;
+    vBurn = burnAmount;
+
+    // 3. Scale the base blade. If burned, scale down heavily
+    float burnScaleFactor = 1.0 - (burnAmount * 0.9); 
+    
+    // Remove grass near pond (if applicable)
+    float distToPond = distance(instancePosition.xz, vec2(0.0, -15.0));
+    float pondFactor = smoothstep(5.0, 6.0, distToPond);
+    
+    float heightScale = instanceScale * 2.5 * burnScaleFactor * pondFactor;
+    float widthScale = instanceScale * mix(1.0, 0.3, burnAmount) * pondFactor;
+
+    vec3 scaleVec = vec3(widthScale, heightScale, widthScale);
+    vec3 pos = position * scaleVec;
+    
+    // 4. Apply wind (slow, gentle sway without high frequency vibration)
+    float noiseFreq = 0.2;
+    float noiseSpeed = 0.35;
+    vec2 noisePos = instancePosition.xz * noiseFreq + vec2(uTime * noiseSpeed, uTime * noiseSpeed * 0.75);
+    
+    float windX = sin(noisePos.x) * cos(noisePos.y);
+    float windZ = cos(noisePos.x * 0.8) * sin(noisePos.y * 1.1);
+    
+    float bend = pow(uv.y, 2.0) * 0.28 * burnScaleFactor; 
+    
+    pos.x += windX * bend;
+    pos.z += windZ * bend;
+    
+    // Apply local rotation
+    mat4 rotMat = rotateY(instanceRotation);
+    vec4 rotatedPos = rotMat * vec4(pos, 1.0);
+    vec4 rotatedNorm = rotMat * vec4(normal, 0.0);
+    vNormal = normalize(rotatedNorm.xyz);
+    
+    // Position instances in world space relative to object matrix
+    vec3 worldOffset = instancePosition;
+    vec4 finalPos = vec4(rotatedPos.xyz + worldOffset, 1.0);
+    
+    // Project to screen
+    gl_Position = projectionMatrix * modelViewMatrix * finalPos;
+  }
+`;
+
+export const grassFragmentShader = `
+  varying vec2 vUv;
+  varying vec3 vColor;
+  varying float vBurn;
+  varying vec3 vInstancePos;
+  varying vec3 vNormal;
+  
+  void main() {
+    // 1. Front-to-back depth lighting gradient
+    // Z > 0 is front foreground (sunlit), Z < 0 is back (shadowed under/behind house)
+    float depthFactor = smoothstep(-14.0, 10.0, vInstancePos.z);
+    
+    // 2. House shadow & occlusion (soft 22% falloff in back)
+    float houseBehindOcclusion = smoothstep(3.0, -6.0, vInstancePos.z) * (1.0 - smoothstep(8.5, 16.0, abs(vInstancePos.x)));
+    float shadowFactor = mix(1.0, 0.78, houseBehindOcclusion);
+
+    // 3. Directional sun lighting from front-above
+    vec3 lightDir = normalize(vec3(2.0, 8.0, 10.0));
+    float diff = max(dot(vNormal, lightDir), 0.0);
+    // Translucent subsurface glow
+    float sss = max(dot(-vNormal, lightDir), 0.0) * 0.45;
+    float lighting = mix(0.85, 1.25, diff + sss) * shadowFactor;
+
+    // 4. Color Gradient (soft, light shading in the back)
+    vec3 darkRoot = vColor * mix(0.44, 0.55, depthFactor) * shadowFactor;
+    vec3 brightTip = vColor * mix(0.92, 1.40, depthFactor) * shadowFactor;
+    
+    // Soft sunny tip highlight
+    vec3 tipHighlight = vec3(0.05, 0.07, 0.01) * depthFactor * pow(vUv.y, 1.3);
+    
+    // Subtle specular sheen along blade surface
+    vec3 viewDir = vec3(0.0, 0.0, 1.0);
+    vec3 halfVector = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(vNormal, halfVector), 0.0), 16.0) * 0.15 * vUv.y;
+    vec3 specColor = vec3(0.5, 0.8, 0.4) * spec;
+
+    vec3 grassColor = (mix(darkRoot, brightTip + tipHighlight, vUv.y) + specColor) * lighting;
+
+    // Burnt ash colors
+    vec3 ashBottomColor = vec3(0.04, 0.04, 0.04);
+    vec3 ashTopColor = vec3(0.12, 0.09, 0.09);
+    vec3 ashColor = mix(ashBottomColor, ashTopColor, vUv.y);
+
+    // Add glowing ember effect based on burn level
+    float isBurning = smoothstep(0.5, 0.9, vBurn) - smoothstep(0.95, 1.0, vBurn);
+    vec3 emberColor = vec3(1.0, 0.3, 0.0) * isBurning * (1.0 - vUv.y);
+
+    // Mix between lush grass and ash based on burn amount
+    vec3 finalColor = mix(grassColor, ashColor, vBurn) + emberColor;
+
+    // Desaturate slightly to prevent overly vivid tones
+    float luminance = dot(finalColor, vec3(0.2126, 0.7152, 0.0722));
+    finalColor = mix(vec3(luminance), finalColor, 0.88);
+
+    // 20% brightness boost
+    gl_FragColor = vec4(finalColor * 1.60, 1.0);
+  }
+`;

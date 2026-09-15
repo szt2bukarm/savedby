@@ -100,6 +100,34 @@ export default async function RootLayout({
         lang="en"
         suppressHydrationWarning className={`${riformaBold.variable} ${riformaRegular.variable} ${riformaMedium.variable}`}>
         <head>
+          <link
+            rel="preload"
+            href="/assets/cloud_l.png"
+            as="image"
+            type="image/webp"
+            fetchPriority="high"
+          />
+          <link
+            rel="preload"
+            href="/assets/cloud_r.png"
+            as="image"
+            type="image/webp"
+            fetchPriority="high"
+          />
+          <link
+            rel="preload"
+            href="/assets/door_blue.png"
+            as="image"
+            type="image/webp"
+            fetchPriority="high"
+          />
+          <link
+            rel="preload"
+            href="/assets/door_red.png"
+            as="image"
+            type="image/webp"
+            fetchPriority="high"
+          />
           {jsonLdData && (
             <script
               type="application/ld+json"

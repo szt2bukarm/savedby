@@ -10,7 +10,14 @@ import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Button from '../common/Button'
-import { applyBoxDissolveShader, createDoorTransitionMaterial, createFakeShadowMaterial } from './heroShaders'
+import {
+  applyBoxDissolveShader,
+  createDoorTransitionMaterial,
+  createFakeShadowMaterial,
+  grassVertexShader,
+  grassFragmentShader,
+} from './heroShaders'
+import { useLenis } from 'lenis/react'
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger)
@@ -85,62 +92,71 @@ const Hero3DBox = ({
   useEffect(() => {
     const items: StickerItem[] = []
     scene.traverse((child: any) => {
-      if (child.isMesh && child.material) {
-        const mats = Array.isArray(child.material) ? child.material : [child.material]
-        mats.forEach((mat: any) => {
-          applyBoxDissolveShader(mat, dissolveUniforms.current)
-          mat.needsUpdate = true
-        })
-      }
+      if (child.isMesh) {
+        if (!/^sticker/i.test(child.name)) {
+          child.renderOrder = 0
+          if (child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material]
+            mats.forEach((mat: any) => {
+              applyBoxDissolveShader(mat, dissolveUniforms.current)
+              mat.needsUpdate = true
+            })
+          }
+        } else {
+          child.renderOrder = 10
+          const geom = child.geometry
+          if (geom && geom.attributes.position && geom.attributes.normal) {
+            const origPositions = Float32Array.from(geom.attributes.position.array)
+            const origNormals = Float32Array.from(geom.attributes.normal.array)
 
-      if (child.isMesh && /^sticker/i.test(child.name)) {
-        const geom = child.geometry
-        if (!geom || !geom.attributes.position || !geom.attributes.normal) return
+            let minU = Infinity
+            let maxU = -Infinity
+            for (let i = 0; i < origPositions.length; i += 3) {
+              const u = origPositions[i] + origPositions[i + 2]
+              if (u < minU) minU = u
+              if (u > maxU) maxU = u
+            }
 
-        const origPositions = Float32Array.from(geom.attributes.position.array)
-        const origNormals = Float32Array.from(geom.attributes.normal.array)
-
-        let minU = Infinity
-        let maxU = -Infinity
-        for (let i = 0; i < origPositions.length; i += 3) {
-          const u = origPositions[i] + origPositions[i + 2]
-          if (u < minU) minU = u
-          if (u > maxU) maxU = u
-        }
-
-        if (child.material) {
-          if (Array.isArray(child.material)) {
-            child.material = child.material.map((m: any) => {
+            const configureStickerMat = (m: any) => {
               const cloned = m.clone()
               cloned.transparent = true
+              cloned.depthWrite = false
+              cloned.alphaTest = 0.05
+              cloned.polygonOffset = true
+              cloned.polygonOffsetFactor = -2
+              cloned.polygonOffsetUnits = -2
               cloned.opacity = 1
+              cloned.needsUpdate = true
               return cloned
+            }
+
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material = child.material.map(configureStickerMat)
+              } else {
+                child.material = configureStickerMat(child.material)
+              }
+            }
+            child.visible = true
+
+            const outwardNormal = new THREE.Vector3(0, 1, 0)
+              .applyQuaternion(child.quaternion)
+              .normalize()
+
+            items.push({
+              name: child.name,
+              mesh: child,
+              origPositions,
+              origNormals,
+              minU,
+              maxU,
+              basePos: child.position.clone(),
+              outwardNormal,
+              progress: 1,
+              opacity: 1,
             })
-          } else {
-            const cloned = child.material.clone()
-            cloned.transparent = true
-            cloned.opacity = 1
-            child.material = cloned
           }
         }
-        child.visible = true
-
-        const outwardNormal = new THREE.Vector3(0, 1, 0)
-          .applyQuaternion(child.quaternion)
-          .normalize()
-
-        items.push({
-          name: child.name,
-          mesh: child,
-          origPositions,
-          origNormals,
-          minU,
-          maxU,
-          basePos: child.position.clone(),
-          outwardNormal,
-          progress: 1,
-          opacity: 1,
-        })
       }
     })
     stickersRef.current = items
@@ -257,10 +273,35 @@ const Hero3DBox = ({
 
     gsap.fromTo(
       boxRef.current.rotation,
+      { x: 1, y: -0.7, z: -1 },
+      {
+        x: 0.29,
+        y: -0.7,
+        z: -0.2,
+        ease: "back.out(0.5)",
+        duration: 2,
+        delay: 0.25
+      }
+    )
+
+     gsap.fromTo(
+      boxRef.current.position,
+      { x: 0, y: 7, z: 0 },
+      {
+        y: -0.5,
+        ease: "back.out(0.5)",
+        duration: 2,
+        delay: 0.25
+      }
+    )
+
+
+    gsap.fromTo(
+      boxRef.current.rotation,
       { x: 0.29, y: -0.7, z: -0.2 },
       {
         x: 0.1,
-        y: -1.3,
+        y: -2.5,
         z: -0.2,
         ease: "none",
         scrollTrigger: {
@@ -295,7 +336,7 @@ const Hero3DBox = ({
       { x: 0, y: 2, z: 0 },
       {
         y: -1.8,
-        z: 2.2,
+        z: 1.5,
         ease: "none",
         immediateRender: false,
         scrollTrigger: {
@@ -428,6 +469,138 @@ const Hero3DBox = ({
   )
 }
 
+const InstancedGrass = ({
+  count = 16000,
+  width = 44,
+  depth = 32,
+  position = [0, 0.5, 0] as [number, number, number],
+}: {
+  count?: number
+  width?: number
+  depth?: number
+  position?: [number, number, number]
+}) => {
+  const materialRef = useRef<THREE.ShaderMaterial>(null)
+
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry()
+    const vertices = new Float32Array([
+      -0.12, 0.0, 0.0,
+       0.12, 0.0, 0.0,
+       0.0,  0.75, 0.0,
+    ])
+    const uvs = new Float32Array([
+      0.0, 0.0,
+      1.0, 0.0,
+      0.5, 1.0,
+    ])
+    const normals = new Float32Array([
+      0, 0, 1,
+      0, 0, 1,
+      0, 0, 1,
+    ])
+
+    geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
+    geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
+    geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 100)
+
+    return geo
+  }, [])
+
+  const [positions, rotations, scales, colors] = useMemo(() => {
+    const positions = new Float32Array(count * 3)
+    const rotations = new Float32Array(count)
+    const scales = new Float32Array(count)
+    const colors = new Float32Array(count * 3)
+
+    const baseColor = new THREE.Color('#43a328')
+    const colorVariance = 0.05
+
+    for (let i = 0; i < count; i++) {
+      let rx = (Math.random() - 0.5) * width
+      let rz = (Math.random() - 0.5) * depth
+
+      // Exclude only the central porch steps & welcome mat walkway (from X = -3.5 to +3.5)
+      if (Math.abs(rx) < 3.5 && rz > -5.0 && rz < 7.0) {
+        if (Math.random() < 0.5) {
+          rx = -3.5 - Math.random() * (width * 0.5 - 3.5)
+        } else {
+          rx = 3.5 + Math.random() * (width * 0.5 - 3.5)
+        }
+      }
+
+      positions[i * 3 + 0] = rx
+      positions[i * 3 + 1] = 0
+      positions[i * 3 + 2] = rz
+
+      rotations[i] = Math.random() * Math.PI * 2
+      scales[i] = 0.5 + Math.random() * 0.8
+
+      const c = baseColor.clone()
+      c.offsetHSL(
+        (Math.random() - 0.5) * 0.02,
+        (Math.random() - 0.5) * colorVariance,
+        (Math.random() - 0.5) * colorVariance
+      )
+      colors[i * 3 + 0] = c.r
+      colors[i * 3 + 1] = c.g
+      colors[i * 3 + 2] = c.b
+    }
+
+    return [
+      new THREE.InstancedBufferAttribute(positions, 3),
+      new THREE.InstancedBufferAttribute(rotations, 1),
+      new THREE.InstancedBufferAttribute(scales, 1),
+      new THREE.InstancedBufferAttribute(colors, 3),
+    ]
+  }, [count, width, depth])
+
+  const defaultBurnTexture = useMemo(() => {
+    const data = new Uint8Array([0, 0, 0, 255])
+    const texture = new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat)
+    texture.needsUpdate = true
+    return texture
+  }, [])
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uBurnMap: { value: defaultBurnTexture },
+    }),
+    [defaultBurnTexture]
+  )
+
+  useFrame((state) => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
+    }
+  })
+
+  return (
+    <mesh position={position} frustumCulled={false}>
+      <instancedBufferGeometry
+        index={geometry.index}
+        attributes={geometry.attributes}
+        instanceCount={count}
+      >
+        <primitive object={positions} attach="attributes-instancePosition" />
+        <primitive object={rotations} attach="attributes-instanceRotation" />
+        <primitive object={scales} attach="attributes-instanceScale" />
+        <primitive object={colors} attach="attributes-instanceColor" />
+      </instancedBufferGeometry>
+
+      <shaderMaterial
+        ref={materialRef}
+        vertexShader={grassVertexShader}
+        fragmentShader={grassFragmentShader}
+        uniforms={uniforms}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  )
+}
+
 const Hero3DBase = () => {
   const { scene } = useGLTF("/gltf/base.glb")
   const [doorTexture, doorBlueTexture] = useTexture([
@@ -445,7 +618,7 @@ const Hero3DBase = () => {
     doorBlueTexture.needsUpdate = true
   }, [doorTexture, doorBlueTexture])
 
-  const baseRef = useRef<THREE.Mesh>(null!)
+  const baseRef = useRef<THREE.Group>(null!)
   const doorUniforms = useRef({
     uTextureA: { value: doorTexture },
     uTextureB: { value: doorBlueTexture },
@@ -550,9 +723,10 @@ const Hero3DBase = () => {
   }, [])
 
   return (
-    <>
-    <primitive ref={baseRef} object={scene} position={[0, -25, -13]} rotation={[0.5,0,0]} />
-    </>
+    <group ref={baseRef} position={[0, -25, -13]} rotation={[0.5, 0, 0]}>
+      <primitive object={scene} />
+      <InstancedGrass />
+    </group>
   )
 }
 
@@ -579,7 +753,7 @@ const DirectionalLightWithControls = () => {
       />
       <directionalLight
         position={[-20, 5, 5]}
-        intensity={10}
+        intensity={5}
         color={"#ffffff"}
       />
     </>
@@ -834,10 +1008,83 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
 }
 
 
+const HeroTitle = ({ heading }: { heading: string }) => {
+
+  useGSAP(() => {
+    gsap.fromTo(
+      "[data-gsap='hero-heading']",
+      {
+        "--gradient-size": "0%",
+      },
+      {
+        "--gradient-size": "120%",
+        ease: "power1.out",
+        duration: 1.25,
+        delay: 1.25
+      }
+    )
+
+    gsap.fromTo(
+      "[data-gsap='hero-heading']",
+      {
+        "--gradient-color": "rgb(0, 149, 236)",
+      },
+      {
+        "--gradient-color": "#FDF6E2",
+        ease: "power1.out",
+        duration: 0.75,
+        delay: 1.35
+      }
+    )
+
+
+
+  }, [heading])
+
+  return (
+      <div className='relative w-full h-full'>
+        <p
+          data-gsap="hero-heading"
+          className='font-riforma-bold tracking-[-6px] leading-[85%] text-[84px] text-background w-[800px] text-balance text-center mb-[185px]'
+          style={{
+            '--gradient-size': '0%',
+            '--gradient-position': '-12% -12%',
+            '--gradient-x': '50%',
+            '--gradient-y': '50%',
+            '--gradient-color': 'rgb(0, 149, 236)',
+            backgroundImage:
+              'radial-gradient(circle at var(--gradient-position, var(--gradient-x, 50%) var(--gradient-y, 50%)), var(--gradient-color, rgb(0, 0, 0)) 0%, var(--gradient-color, rgb(0, 0, 0)) var(--gradient-size, 0%), transparent calc(var(--gradient-size, 0%) + 15%))',
+            backgroundSize: '100% 100%',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            color: 'transparent',
+          } as React.CSSProperties}
+        >
+          {heading}
+        </p>
+      </div>
+  )
+}
+
+
 export default function Hero({ block }: HeroProps) {
   const [mounted, setMounted] = useState(false)
   const [stickersApplied, setStickersApplied] = useState(true)
   const [wobbleEnabled, setWobbleEnabled] = useState(true)
+  const [heroMounted,setHeroMounted] = useState(false);
+  const lenis = useLenis();
+
+  useEffect(() => {
+    if (!lenis) return;
+    setTimeout(() => {
+    lenis?.stop();
+    }, 0);
+    setTimeout(() => {
+      setHeroMounted(true)
+    }, 1);
+    gsap.delayedCall(2.6,() => lenis.start())
+  },[lenis])
 
   useEffect(() => {
     setMounted(true)
@@ -849,16 +1096,25 @@ export default function Hero({ block }: HeroProps) {
 
 
   useGSAP(() => {
-    gsap.to("[data-gsap='left-cloud']", {
-      y: 25,
+    
+    gsap.fromTo("[data-gsap='left-cloud-wrapper'],[data-gsap='right-cloud-wrapper']", {yPercent: -130}, {
+      yPercent: 0,
+      duration: 1.75,
+      ease: "back.out(0.5)",
+      stagger: 0.25,
+      delay: 0.25
+    })
+
+      gsap.fromTo("[data-gsap='left-cloud']",{y:0}, {
+      y: 50,
       duration: 3,
       yoyo: true,
       repeat: -1,
-      delay: 1.5,
+      delay: 1,
       ease: "power1.inOut"
     })
-    gsap.to("[data-gsap='right-cloud']", {
-      y: 25,
+    gsap.fromTo("[data-gsap='right-cloud']",{y:0}, {
+      y: 50,
       duration: 3,
       yoyo: true,
       repeat: -1,
@@ -875,6 +1131,15 @@ export default function Hero({ block }: HeroProps) {
         scrub: true,
         
       }
+    })
+
+    gsap.fromTo("[data-gsap='hero-init']",{
+      opacity: 0
+    },{
+      opacity: 1,
+      duration: 1,
+      delay: 1,
+      ease: "power1.out"
     })
 
     gsap.fromTo("[data-gsap='hero-dim']",{
@@ -901,6 +1166,7 @@ export default function Hero({ block }: HeroProps) {
     })
   }, [])
 
+  if (!setHeroMounted) return;
 
   return (
     <div data-gsap="hero" className="w-full h-[280vh] relative bg-background overflow-x-clip">
@@ -909,14 +1175,16 @@ export default function Hero({ block }: HeroProps) {
       )}
       {/* Behind the box (z-0) */}
       <div className='flex items-center justify-center flex-col gap-[25px] absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
-        <img
+        <div data-gsap="left-cloud-wrapper" className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit'>
+          <img
           src="/assets/cloud_l.png"
           alt=""
           data-gsap="left-cloud"
-          className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit scale-x-[-1] rotate-[-20deg] pointer-events-none select-none'
+          className='w-full h-full scale-x-[-1] rotate-[-20deg] pointer-events-none select-none object-contain'
         />
+        </div>
 
-        <div className='flex gap-[30px] items-center justify-center'>
+        <div data-gsap="hero-init" className='flex gap-[30px] items-center justify-center'>
           <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[18px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
           <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[18px] text-background text-center'>
             <span>5.0</span>
@@ -929,9 +1197,11 @@ export default function Hero({ block }: HeroProps) {
           </p>
         </div>
 
-        <div className='flex flex-col'>
-          <h2 className='font-riforma-bold tracking-[-6px] leading-[85%] text-[84px] text-background w-[800px] text-balance text-center mb-[185px]'>{block?.heading}</h2>
+        {block?.heading && (
+          <div className='flex flex-col'>
+          <HeroTitle heading={block?.heading}/>
         </div>
+        )}
       </div>
 
       {/* Base Canvas (z-[5]) */}
@@ -946,7 +1216,7 @@ export default function Hero({ block }: HeroProps) {
               style={{ pointerEvents: 'none' }}
               className='pointer-events-none w-full h-screen'>
               <CameraController />
-              <BaseLights />
+              {/* <BaseLights /> */}
               <Suspense fallback={null}>
                 <Hero3DBase />
               </Suspense>
@@ -969,7 +1239,7 @@ export default function Hero({ block }: HeroProps) {
               style={{ pointerEvents: 'none' }}
               className='pointer-events-none w-full h-screen'>
               <CameraController />
-              {/* <Environment preset='forest' environmentIntensity={1} /> */}
+              <Environment preset='forest' environmentIntensity={1} />
               <DirectionalLightWithControls />
               <Suspense fallback={null}>
                 <Hero3DBox stickersApplied={stickersApplied} wobbleEnabled={wobbleEnabled} />
@@ -980,17 +1250,19 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Above the box (z-20) */}
-      <div className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none '>
-        <img
+      <div data-gsap="right-cloud-wrapper" className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none '>
+        <div className='absolute bottom-[-150px] right-[-5vw] w-[50vw] h-fit'>
+          <img
           src="/assets/cloud_r.png"
           alt=""
           data-gsap="right-cloud"
-          className='absolute bottom-[-150px] right-[-5vw] w-[50vw] h-fit pointer-events-none select-none'
+          className=' w-full h-full pointer-events-none select-none object-contain'
         />
+        </div>
       </div>
 
       {/* Bottom part */}
-      <div className='absolute top-[81vh] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] w-screen '>
+      <div data-gsap="hero-init" className='absolute top-[81vh] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] w-screen '>
 
           <div className='flex gap-[35px] items-center'>
             <p className='text-black font-riforma-bold text-[28px] leading-[110%]'>{block?.bottomText}</p>
