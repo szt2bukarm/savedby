@@ -6,12 +6,14 @@ import * as THREE from 'three'
  */
 export function applyBoxDissolveShader(
   material: THREE.Material,
-  dissolveUniforms: Record<string, { value: any }>
+  dissolveUniforms: Record<string, { value: any }>,
+  options?: { depthWrite?: boolean; cacheKeySuffix?: string }
 ) {
   material.transparent = true
-  material.depthWrite = true
+  material.depthWrite = options?.depthWrite !== undefined ? options.depthWrite : true
   material.side = THREE.DoubleSide
-  ;(material as any).customProgramCacheKey = () => 'box_wavy_dissolve_shader_v2'
+  const suffix = options?.cacheKeySuffix ? `_${options.cacheKeySuffix}` : `_${material.id}`
+  ;(material as any).customProgramCacheKey = () => `box_wavy_dissolve_shader_v2${suffix}`
 
   ;(material as any).onBeforeCompile = (shader: any) => {
     shader.uniforms.uDissolveProgress = dissolveUniforms.uDissolveProgress

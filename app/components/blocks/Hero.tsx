@@ -120,6 +120,10 @@ const Hero3DBox = ({
 
             const configureStickerMat = (m: any) => {
               const cloned = m.clone()
+              applyBoxDissolveShader(cloned, dissolveUniforms.current, {
+                depthWrite: false,
+                cacheKeySuffix: `sticker_${cloned.id}`,
+              })
               cloned.transparent = true
               cloned.depthWrite = false
               cloned.alphaTest = 0.05
@@ -153,8 +157,8 @@ const Hero3DBox = ({
               maxU,
               basePos: child.position.clone(),
               outwardNormal,
-              progress: 1,
-              opacity: 1,
+              progress: 0,
+              opacity: 0,
             })
           }
         }
@@ -166,61 +170,29 @@ const Hero3DBox = ({
 
   useGSAP(() => {
     if (!stickersReady || stickersRef.current.length === 0) return
+    if (!stickersApplied) return
 
-    // Sticker Peel
-    const tlPeel = gsap.timeline({
-      scrollTrigger: {
-        trigger: "[data-gsap='hero']",
-        start: "18% 50%",
-        end: "35% 50%",
-        scrub: true,
-        
-      },
+    // Intro sticker
+    const tlIntro = gsap.timeline({
+      delay: 1.25,
     })
 
     stickersRef.current.forEach((sticker, i) => {
-      const staggerOffset = i * 0.08
-      tlPeel.fromTo(
-        sticker,
-        { progress: 1 },
-        { progress: 0, ease: "none", duration: 1 },
-        staggerOffset
-      )
-      tlPeel.fromTo(
-        sticker,
-        { opacity: 1 },
-        { opacity: 0, ease: "none", duration: 0.35 },
-        staggerOffset + 0.65
-      )
-    })
-
-    // Reapply
-    const tlReapply = gsap.timeline({
-      scrollTrigger: {
-        trigger: "[data-gsap='hero']",
-        start: "70% 50%",
-        end: "80% 50%",
-        scrub: true,
-        
-      },
-    })
-
-    stickersRef.current.forEach((sticker, i) => {
-      const staggerOffset = i * 0.08
-      tlReapply.fromTo(
+      const staggerOffset = i * 0.12
+      tlIntro.fromTo(
         sticker,
         { opacity: 0 },
-        { opacity: 1, ease: "none", duration: 0.35, immediateRender: false },
+        { opacity: 1, ease: "power1.out", duration: 0.35 },
         staggerOffset
       )
-      tlReapply.fromTo(
+      tlIntro.fromTo(
         sticker,
         { progress: 0 },
-        { progress: 1, ease: "none", duration: 1, immediateRender: false },
+        { progress: 1, ease: "power2.out", duration: 1.5 },
         staggerOffset
       )
     })
-  }, [stickersReady])
+  }, [stickersReady, stickersApplied])
 
   useGSAP(() => {
     // Dissolve
@@ -790,9 +762,9 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
     gsap.fromTo(
       marqueeRef.current,
-      { x: 0 },
+      { x: -trackWidth },
       {
-        x: -trackWidth,
+        x: 0,
         duration: logos.length * 2,
         repeat: -1,
         ease: 'none',
