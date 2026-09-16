@@ -12,7 +12,7 @@ export function applyBoxDissolveShader(
   material.transparent = true
   material.depthWrite = options?.depthWrite !== undefined ? options.depthWrite : true
   material.side = THREE.DoubleSide
-  const suffix = options?.cacheKeySuffix ? `_${options.cacheKeySuffix}` : `_${material.id}`
+  const suffix = options?.cacheKeySuffix ? `_${options.cacheKeySuffix}` : `_${(material as any).id ?? material.uuid}`
   ;(material as any).customProgramCacheKey = () => `box_wavy_dissolve_shader_v2${suffix}`
 
   ;(material as any).onBeforeCompile = (shader: any) => {

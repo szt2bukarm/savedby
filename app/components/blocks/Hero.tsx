@@ -122,7 +122,7 @@ const Hero3DBox = ({
               const cloned = m.clone()
               applyBoxDissolveShader(cloned, dissolveUniforms.current, {
                 depthWrite: false,
-                cacheKeySuffix: `sticker_${cloned.id}`,
+                cacheKeySuffix: `sticker_${cloned.uuid}`,
               })
               cloned.transparent = true
               cloned.depthWrite = false
