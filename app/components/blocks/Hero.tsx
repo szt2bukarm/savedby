@@ -67,6 +67,7 @@ const Hero3DBox = ({
   const boxRef = useRef<THREE.Group>(null)
   const wobbleRef = useRef<THREE.Group>(null)
   const wobbleAmountRef = useRef(0.08)
+  const floatDampRef = useRef(0)
   const stickersRef = useRef<StickerItem[]>([])
   const box3Ref = useRef(new THREE.Box3())
 
@@ -383,10 +384,15 @@ const Hero3DBox = ({
     const targetWobble = wobbleEnabled ? 0.08 : 0
     wobbleAmountRef.current = THREE.MathUtils.damp(wobbleAmountRef.current, targetWobble, 6, delta)
 
+    const isAtTop = typeof window !== 'undefined' ? window.scrollY < 20 : true
+    const targetFloat = isAtTop ? 1 : 0
+    floatDampRef.current = THREE.MathUtils.damp(floatDampRef.current, targetFloat, 5, delta)
+
     if (wobbleRef.current) {
       const t = clock.getElapsedTime() * 1.5
       wobbleRef.current.rotation.x = Math.sin(t) * wobbleAmountRef.current
       wobbleRef.current.rotation.z = Math.cos(t) * wobbleAmountRef.current
+      wobbleRef.current.position.y = Math.sin(t * 1.2) * 0.2 * floatDampRef.current
     }
     
 
@@ -470,7 +476,7 @@ const Hero3DBox = ({
 }
 
 const InstancedGrass = ({
-  count = 16000,
+  count = 17000,
   width = 44,
   depth = 32,
   position = [0, 0.5, 0] as [number, number, number],
@@ -1097,37 +1103,31 @@ export default function Hero({ block }: HeroProps) {
 
   useGSAP(() => {
     
-    gsap.fromTo("[data-gsap='left-cloud-wrapper'],[data-gsap='right-cloud-wrapper']", {yPercent: -130}, {
+    gsap.fromTo("[data-gsap='left-cloud-wrapper-1'],[data-gsap='right-cloud-wrapper-1'],[data-gsap='left-cloud-wrapper-2'],[data-gsap='right-cloud-wrapper-2']", {yPercent: 130}, {
       yPercent: 0,
       duration: 1.75,
       ease: "back.out(0.5)",
-      stagger: 0.25,
+      stagger: 0.15,
       delay: 0.25
     })
 
-      gsap.fromTo("[data-gsap='left-cloud']",{y:0}, {
-      y: 50,
+      gsap.fromTo("[data-gsap='left-cloud-wrapper-1'],[data-gsap='right-cloud-wrapper-1'],[data-gsap='left-cloud-wrapper-2'],[data-gsap='right-cloud-wrapper-2']",{y:0}, {
+      y: 25,
       duration: 3,
       yoyo: true,
       repeat: -1,
       delay: 1,
-      ease: "power1.inOut"
-    })
-    gsap.fromTo("[data-gsap='right-cloud']",{y:0}, {
-      y: 50,
-      duration: 3,
-      yoyo: true,
-      repeat: -1,
+      stagger: 0.15,
       ease: "power1.inOut"
     })
 
-    gsap.to("[data-gsap='left-cloud'],[data-gsap='right-cloud']", {
+    gsap.to("[data-gsap='left-cloud-1'],[data-gsap='right-cloud-2'],[data-gsap='left-cloud-2'],[data-gsap='right-cloud-1']", {
       yPercent: -45,
       ease: "none",
       scrollTrigger: {
         trigger: "[data-gsap='hero']",
         start: "17% 50%",
-        end: "50% 50%",
+        end: "60% 50%",
         scrub: true,
         
       }
@@ -1157,6 +1157,31 @@ export default function Hero({ block }: HeroProps) {
   })
 
   useGSAP(() => {
+    const duration = 10
+          const tl = gsap.timeline({ repeat: -1, defaults: { ease: 'none' } })
+
+    gsap.set("[data-gsap='left-cloud-1']", { xPercent: 0, opacity: 1 })
+    gsap.set("[data-gsap='left-cloud-2']", { xPercent: 30, opacity: 0 })
+
+    tl.to("[data-gsap='left-cloud-1']", { xPercent: -30, opacity: 0, duration: duration })
+      .to("[data-gsap='left-cloud-2']", { xPercent: 0, opacity: 1, duration: duration }, 0)
+      .set("[data-gsap='left-cloud-1']", { xPercent: 30, opacity: 0 })
+      .to("[data-gsap='left-cloud-2']", { xPercent: -30, opacity: 0, duration: duration })
+      .to("[data-gsap='left-cloud-1']", { xPercent: 0, opacity: 1, duration: duration }, "<")
+
+    const tl2 = gsap.timeline({ repeat: -1, defaults: { ease: 'none' } })
+
+    gsap.set("[data-gsap='right-cloud-1']", { xPercent: 0, opacity: 1 })
+    gsap.set("[data-gsap='right-cloud-2']", { xPercent: 30, opacity: 0 })
+
+    tl2.to("[data-gsap='right-cloud-1']", { xPercent: -30, opacity: 0, duration: duration })
+      .to("[data-gsap='right-cloud-2']", { xPercent: 0, opacity: 1, duration: duration }, 0)
+      .set("[data-gsap='right-cloud-1']", { xPercent: 30, opacity: 0 })
+      .to("[data-gsap='right-cloud-2']", { xPercent: -30, opacity: 0, duration: duration })
+      .to("[data-gsap='right-cloud-1']", { xPercent: 0, opacity: 1, duration: duration }, "<")
+  }, [])
+
+  useGSAP(() => {
     ScrollTrigger.create({
       trigger: "[data-gsap='hero']",
       start: "90% bottom",
@@ -1175,15 +1200,6 @@ export default function Hero({ block }: HeroProps) {
       )}
       {/* Behind the box (z-0) */}
       <div className='flex items-center justify-center flex-col gap-[25px] absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
-        <div data-gsap="left-cloud-wrapper" className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit'>
-          <img
-          src="/assets/cloud_l.png"
-          alt=""
-          data-gsap="left-cloud"
-          className='w-full h-full scale-x-[-1] rotate-[-20deg] pointer-events-none select-none object-contain'
-        />
-        </div>
-
         <div data-gsap="hero-init" className='flex gap-[30px] items-center justify-center'>
           <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[18px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
           <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[18px] text-background text-center'>
@@ -1249,14 +1265,47 @@ export default function Hero({ block }: HeroProps) {
         </div>
       </div>
 
-      {/* Above the box (z-20) */}
-      <div data-gsap="right-cloud-wrapper" className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none '>
-        <div className='absolute bottom-[-150px] right-[-5vw] w-[50vw] h-fit'>
+      {/* Left cloud (behind box, z-0) */}
+      <div data-gsap="left-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none mix-blend-screen'>
+        <div className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit'>
           <img
-          src="/assets/cloud_r.png"
+            src="/assets/c3.jpg"
+            alt=""
+            data-gsap="left-cloud-1"
+            className='w-full h-full rotate-[-20deg] pointer-events-none select-none object-contain'
+          />
+        </div>
+      </div>
+      <div data-gsap="left-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none mix-blend-screen'>
+        <div className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit'>
+          <img
+            src="/assets/c2.jpg"
+            alt=""
+            data-gsap="left-cloud-2"
+            className='w-full h-full pointer-events-none select-none object-contain opacity-0'
+          />
+        </div>
+      </div>
+
+      {/* Right cloud (z-20) */}
+      <div data-gsap="right-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none mix-blend-screen'>
+       
+        <div className='absolute bottom-[-150px] right-[-5vw] w-[55vw] h-fit'>
+          <img
+          src="/assets/c4.jpg"
           alt=""
-          data-gsap="right-cloud"
-          className=' w-full h-full pointer-events-none select-none object-contain'
+          data-gsap="right-cloud-1"
+          className=' w-full h-full pointer-events-none select-none object-contain '
+        />
+        </div>
+      </div>
+      <div data-gsap="right-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none mix-blend-screen'>
+        <div className='absolute bottom-[-150px] right-[-5vw] w-[55vw] h-fit'>
+          <img
+          src="/assets/c1.jpg"
+          alt=""
+          data-gsap="right-cloud-2"
+          className=' w-full h-full pointer-events-none select-none object-contain opacity-0'
         />
         </div>
       </div>

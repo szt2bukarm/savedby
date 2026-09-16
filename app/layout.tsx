@@ -102,14 +102,28 @@ export default async function RootLayout({
         <head>
           <link
             rel="preload"
-            href="/assets/cloud_l.png"
+            href="/assets/c1.jpg"
             as="image"
             type="image/webp"
             fetchPriority="high"
           />
           <link
             rel="preload"
-            href="/assets/cloud_r.png"
+            href="/assets/c2.jpg"
+            as="image"
+            type="image/webp"
+            fetchPriority="high"
+          />
+          <link
+            rel="preload"
+            href="/assets/c3.jpg"
+            as="image"
+            type="image/webp"
+            fetchPriority="high"
+          />
+          <link
+            rel="preload"
+            href="/assets/c4.jpg"
             as="image"
             type="image/webp"
             fetchPriority="high"
