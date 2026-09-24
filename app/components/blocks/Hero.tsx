@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, Suspense, useRef } from 'react'
 import type { SanityImageData } from '@/types/sanity'
 import SanityImage from '../common/SanityImage'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Environment, OrbitControls, useGLTF, useTexture } from '@react-three/drei'
+import { Environment, OrbitControls, useGLTF, useTexture, Preload } from '@react-three/drei'
 import type { PerspectiveCamera } from 'three'
 import * as THREE from 'three'
 import { useGSAP } from '@gsap/react'
@@ -14,14 +14,11 @@ import {
   applyBoxDissolveShader,
   createDoorTransitionMaterial,
   createFakeShadowMaterial,
-  grassVertexShader,
-  grassFragmentShader,
-} from './heroShaders'
+} from './Hero/heroShaders'
 import { useLenis } from 'lenis/react'
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger)
-}
+import InstancedGrass from './Hero/InstancedGrass'
+import { useStickers } from './Hero/useStickers'
+gsap.registerPlugin(ScrollTrigger)
 
 interface HeroData {
   heading?: string
@@ -43,19 +40,6 @@ interface HeroProps {
   block?: HeroData
 }
 
-interface StickerItem {
-  name: string
-  mesh: THREE.Mesh
-  origPositions: Float32Array
-  origNormals: Float32Array
-  minU: number
-  maxU: number
-  basePos: THREE.Vector3
-  outwardNormal: THREE.Vector3
-  progress: number
-  opacity: number
-}
-
 const Hero3DBox = ({
   stickersApplied = true,
   wobbleEnabled = true,
@@ -64,109 +48,7 @@ const Hero3DBox = ({
   wobbleEnabled?: boolean
 }) => {
   const { scene } = useGLTF('/gltf/box.glb')
-  const boxRef = useRef<THREE.Group>(null)
-  const wobbleRef = useRef<THREE.Group>(null)
-  const wobbleAmountRef = useRef(0.08)
-  const floatDampRef = useRef(0)
-  const stickersRef = useRef<StickerItem[]>([])
-  const box3Ref = useRef(new THREE.Box3())
-
-  const [stickersReady, setStickersReady] = useState(false)
-
-  const dissolveUniforms = useRef({
-    uDissolveProgress: { value: 0 },
-    uDissolveColor: { value: new THREE.Color('#1583fd') },
-    uCoreColor: { value: new THREE.Color('#59a2ff') },
-    uGlowWidth: { value: 0.28 }, // Radiant glow width
-    uWaveAmount: { value: 0.09 }, // Organic wave curvature across the sweep
-    uWaveFrequency: { value: 1.0 }, // Harmonic scale
-    uWaveSpeed: { value: 1.1 }, // Living fluid animation speed
-    uTime: { value: 0 },
-    uDirection: { value: 1.0 }, // 1.0 = top-to-bottom, 0.0 = bottom-to-top
-    uMinY: { value: -1.3 },
-    uMaxY: { value: 0.8 },
-  })
-
-  const floatDistance = 0.45
-  const curlHeight = 1.2
-
-  useEffect(() => {
-    const items: StickerItem[] = []
-    scene.traverse((child: any) => {
-      if (child.isMesh) {
-        if (!/^sticker/i.test(child.name)) {
-          child.renderOrder = 0
-          if (child.material) {
-            const mats = Array.isArray(child.material) ? child.material : [child.material]
-            mats.forEach((mat: any) => {
-              applyBoxDissolveShader(mat, dissolveUniforms.current)
-              mat.needsUpdate = true
-            })
-          }
-        } else {
-          child.renderOrder = 10
-          const geom = child.geometry
-          if (geom && geom.attributes.position && geom.attributes.normal) {
-            const origPositions = Float32Array.from(geom.attributes.position.array)
-            const origNormals = Float32Array.from(geom.attributes.normal.array)
-
-            let minU = Infinity
-            let maxU = -Infinity
-            for (let i = 0; i < origPositions.length; i += 3) {
-              const u = origPositions[i] + origPositions[i + 2]
-              if (u < minU) minU = u
-              if (u > maxU) maxU = u
-            }
-
-            const configureStickerMat = (m: any) => {
-              const cloned = m.clone()
-              applyBoxDissolveShader(cloned, dissolveUniforms.current, {
-                depthWrite: false,
-                cacheKeySuffix: `sticker_${cloned.uuid}`,
-              })
-              cloned.transparent = true
-              cloned.depthWrite = false
-              cloned.alphaTest = 0.05
-              cloned.polygonOffset = true
-              cloned.polygonOffsetFactor = -2
-              cloned.polygonOffsetUnits = -2
-              cloned.opacity = 1
-              cloned.needsUpdate = true
-              return cloned
-            }
-
-            if (child.material) {
-              if (Array.isArray(child.material)) {
-                child.material = child.material.map(configureStickerMat)
-              } else {
-                child.material = configureStickerMat(child.material)
-              }
-            }
-            child.visible = true
-
-            const outwardNormal = new THREE.Vector3(0, 1, 0)
-              .applyQuaternion(child.quaternion)
-              .normalize()
-
-            items.push({
-              name: child.name,
-              mesh: child,
-              origPositions,
-              origNormals,
-              minU,
-              maxU,
-              basePos: child.position.clone(),
-              outwardNormal,
-              progress: 0,
-              opacity: 0,
-            })
-          }
-        }
-      }
-    })
-    stickersRef.current = items
-    setStickersReady(true)
-  }, [scene])
+  const { boxRef, wobbleRef, stickersRef, stickersReady, dissolveUniforms } = useStickers({ scene, wobbleEnabled })
 
   useGSAP(() => {
     if (!stickersReady || stickersRef.current.length === 0) return
@@ -288,7 +170,7 @@ const Hero3DBox = ({
 
     gsap.fromTo(
       boxRef.current.rotation,
-      { x: 0.1, y: -1.3, z: -0.2 },
+      { x: 0.1, y: -1.5, z: -0.35 },
       {
         x: 0.1,
         y: -1,
@@ -297,7 +179,7 @@ const Hero3DBox = ({
         immediateRender: false,
         scrollTrigger: {
           trigger: "[data-gsap='hero']",
-          start: "85% bottom",
+          start: "90% bottom",
           end: "100% bottom",
           scrub: true,
         },
@@ -344,95 +226,7 @@ const Hero3DBox = ({
     )
   }, [boxRef.current])
 
-  useFrame(({ clock }, delta) => {
-    dissolveUniforms.current.uTime.value = clock.getElapsedTime()
 
-    if (boxRef.current) {
-      box3Ref.current.setFromObject(boxRef.current)
-      dissolveUniforms.current.uMinY.value = box3Ref.current.min.y
-      dissolveUniforms.current.uMaxY.value = box3Ref.current.max.y
-    }
-
-    const targetWobble = wobbleEnabled ? 0.08 : 0
-    wobbleAmountRef.current = THREE.MathUtils.damp(wobbleAmountRef.current, targetWobble, 6, delta)
-
-    const isAtTop = typeof window !== 'undefined' ? window.scrollY < 20 : true
-    const targetFloat = isAtTop ? 1 : 0
-    floatDampRef.current = THREE.MathUtils.damp(floatDampRef.current, targetFloat, 5, delta)
-
-    if (wobbleRef.current) {
-      const t = clock.getElapsedTime() * 1.5
-      wobbleRef.current.rotation.x = Math.sin(t) * wobbleAmountRef.current
-      wobbleRef.current.rotation.z = Math.cos(t) * wobbleAmountRef.current
-      wobbleRef.current.position.y = Math.sin(t * 1.2) * 0.2 * floatDampRef.current
-    }
-    
-
-    stickersRef.current.forEach(sticker => {
-      const mat = sticker.mesh.material
-      if (Array.isArray(mat)) {
-        mat.forEach((m: any) => {
-          m.opacity = sticker.opacity
-        })
-      } else if (mat) {
-        ;(mat as any).opacity = sticker.opacity
-      }
-      sticker.mesh.visible = sticker.opacity > 0.001
-
-      if (!sticker.mesh.visible) return
-
-      const geom = sticker.mesh.geometry
-      if (!geom || !geom.attributes.position) return
-
-      const pos = geom.attributes.position.array as Float32Array
-      const { origPositions, origNormals, minU, maxU, basePos, outwardNormal } = sticker
-      const p = sticker.progress
-      const curlAmount = 1 - p
-      const rangeU = maxU - minU || 1
-
-      if (curlAmount <= 0.0001) {
-        for (let i = 0; i < pos.length; i++) {
-          pos[i] = origPositions[i]
-        }
-        sticker.mesh.position.copy(basePos)
-        geom.attributes.position.needsUpdate = true
-        return
-      }
-
-      for (let i = 0; i < pos.length; i += 3) {
-        const ox = origPositions[i]
-        const oy = origPositions[i + 1]
-        const oz = origPositions[i + 2]
-        const nx = origNormals[i]
-        const ny = origNormals[i + 1]
-        const nz = origNormals[i + 2]
-
-        const u = ox + oz
-        const uNorm = (u - minU) / rangeU
-
-        if (uNorm > p) {
-          const d = (uNorm - p) / (1 - p + 0.0001)
-          const lift = (Math.pow(d, 1.5) * 0.38 + Math.sin(d * Math.PI) * 0.15) * curlAmount * curlHeight
-          const pull = Math.pow(d, 2) * 0.17 * curlAmount
-
-          pos[i] = ox + nx * lift - 0.707 * pull
-          pos[i + 1] = oy + ny * lift
-          pos[i + 2] = oz + nz * lift - 0.707 * pull
-        } else {
-          pos[i] = ox
-          pos[i + 1] = oy
-          pos[i + 2] = oz
-        }
-      }
-
-      geom.attributes.position.needsUpdate = true
-      geom.computeVertexNormals()
-
-      sticker.mesh.position
-        .copy(basePos)
-        .addScaledVector(outwardNormal, curlAmount * floatDistance)
-    })
-  })
 
   return (
     <group
@@ -447,144 +241,37 @@ const Hero3DBox = ({
   )
 }
 
-const InstancedGrass = ({
-  count = 17000,
-  width = 44,
-  depth = 32,
-  position = [0, 0.5, 0] as [number, number, number],
-}: {
-  count?: number
-  width?: number
-  depth?: number
-  position?: [number, number, number]
-}) => {
-  const materialRef = useRef<THREE.ShaderMaterial>(null)
 
-  const geometry = useMemo(() => {
-    const geo = new THREE.BufferGeometry()
-    const vertices = new Float32Array([
-      -0.12, 0.0, 0.0,
-       0.12, 0.0, 0.0,
-       0.0,  0.75, 0.0,
-    ])
-    const uvs = new Float32Array([
-      0.0, 0.0,
-      1.0, 0.0,
-      0.5, 1.0,
-    ])
-    const normals = new Float32Array([
-      0, 0, 1,
-      0, 0, 1,
-      0, 0, 1,
-    ])
 
-    geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
-    geo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2))
-    geo.setAttribute('normal', new THREE.BufferAttribute(normals, 3))
-    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 100)
-
-    return geo
-  }, [])
-
-  const [positions, rotations, scales, colors] = useMemo(() => {
-    const positions = new Float32Array(count * 3)
-    const rotations = new Float32Array(count)
-    const scales = new Float32Array(count)
-    const colors = new Float32Array(count * 3)
-
-    const baseColor = new THREE.Color('#43a328')
-    const colorVariance = 0.05
-
-    for (let i = 0; i < count; i++) {
-      let rx = (Math.random() - 0.5) * width
-      let rz = (Math.random() - 0.5) * depth
-
-      // Exclude only the central porch steps & welcome mat walkway (from X = -3.5 to +3.5)
-      if (Math.abs(rx) < 3.5 && rz > -5.0 && rz < 7.0) {
-        if (Math.random() < 0.5) {
-          rx = -3.5 - Math.random() * (width * 0.5 - 3.5)
-        } else {
-          rx = 3.5 + Math.random() * (width * 0.5 - 3.5)
-        }
-      }
-
-      positions[i * 3 + 0] = rx
-      positions[i * 3 + 1] = 0
-      positions[i * 3 + 2] = rz
-
-      rotations[i] = Math.random() * Math.PI * 2
-      scales[i] = 0.5 + Math.random() * 0.8
-
-      const c = baseColor.clone()
-      c.offsetHSL(
-        (Math.random() - 0.5) * 0.02,
-        (Math.random() - 0.5) * colorVariance,
-        (Math.random() - 0.5) * colorVariance
-      )
-      colors[i * 3 + 0] = c.r
-      colors[i * 3 + 1] = c.g
-      colors[i * 3 + 2] = c.b
-    }
-
-    return [
-      new THREE.InstancedBufferAttribute(positions, 3),
-      new THREE.InstancedBufferAttribute(rotations, 1),
-      new THREE.InstancedBufferAttribute(scales, 1),
-      new THREE.InstancedBufferAttribute(colors, 3),
-    ]
-  }, [count, width, depth])
-
-  const defaultBurnTexture = useMemo(() => {
-    const data = new Uint8Array([0, 0, 0, 255])
-    const texture = new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat)
-    texture.needsUpdate = true
-    return texture
-  }, [])
-
-  const uniforms = useMemo(
-    () => ({
-      uTime: { value: 0 },
-      uBurnMap: { value: defaultBurnTexture },
-    }),
-    [defaultBurnTexture]
-  )
-
-  useFrame((state) => {
-    if (materialRef.current) {
-      materialRef.current.uniforms.uTime.value = state.clock.elapsedTime
-    }
-  })
-
-  return (
-    <mesh position={position} frustumCulled={false}>
-      <instancedBufferGeometry
-        index={geometry.index}
-        attributes={geometry.attributes}
-        instanceCount={count}
-      >
-        <primitive object={positions} attach="attributes-instancePosition" />
-        <primitive object={rotations} attach="attributes-instanceRotation" />
-        <primitive object={scales} attach="attributes-instanceScale" />
-        <primitive object={colors} attach="attributes-instanceColor" />
-      </instancedBufferGeometry>
-
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={grassVertexShader}
-        fragmentShader={grassFragmentShader}
-        uniforms={uniforms}
-        side={THREE.DoubleSide}
-      />
-    </mesh>
-  )
+const HighResModel = ({ url, onLoad }: { url: string, onLoad: (scene: THREE.Group) => void }) => {
+  const { scene } = useGLTF(url)
+  useEffect(() => {
+    if (scene) onLoad(scene.clone() as THREE.Group)
+  }, [scene, onLoad])
+  return null
 }
 
 const Hero3DBase = () => {
-  const { scene } = useGLTF("/gltf/base.glb")
+  const { scene: lowResScene } = useGLTF("/gltf/base.glb")
+  const [highResScene, setHighResScene] = useState<THREE.Group | null>(null)
+  const scene = highResScene || lowResScene
+
   const [doorTexture, doorBlueTexture] = useTexture([
     '/assets/door.png',
     '/assets/door_blue.png',
   ])
+
+  const grassPlaneMesh = useMemo(() => {
+    let found: THREE.Mesh | null = null
+    scene.traverse((child: any) => {
+      // Look for a mesh specifically named GrassPlane to use as the spawn area
+      if (child.isMesh && child.name.toLowerCase().includes('grass')) {
+        found = child
+        child.visible = false // Hide the spawn mesh so it doesn't render
+      }
+    })
+    return found
+  }, [scene])
 
   useEffect(() => {
     doorTexture.flipY = false
@@ -703,21 +390,16 @@ const Hero3DBase = () => {
   return (
     <group ref={baseRef} position={[0, -25, -13]} rotation={[0.5, 0, 0]}>
       <primitive object={scene} />
-      <InstancedGrass />
+      <InstancedGrass samplerMesh={grassPlaneMesh} />
+      <Suspense fallback={null}>
+        {!highResScene && (
+          <HighResModel 
+            url="/gltf/base_high.glb" 
+            onLoad={setHighResScene} 
+          />
+        )}
+      </Suspense>
     </group>
-  )
-}
-
-const BaseLights = () => {
-  return (
-    <>
-      <ambientLight intensity={1} color="#ffffff" />
-      <directionalLight
-        position={[0, 10, 5]}
-        intensity={6}
-        color="#ffffff"
-      />
-    </>
   )
 }
 
