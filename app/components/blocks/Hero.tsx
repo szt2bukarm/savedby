@@ -463,13 +463,14 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
       return (
         <div
-          className="w-fit h-[40px] flex items-center justify-center shrink-0 "
+          className="h-[40px] flex items-center justify-center shrink-0 "
           key={`${duplicate ? 'dup' : 'original'}-${logo._key || i}`}
         >
           <SanityImage
             image={imageSource}
             alt={altText}
-            className="w-full h-full object-contain"
+            sizes="150px"
+            className="w-auto h-full object-contain"
           />
         </div>
       )
@@ -534,7 +535,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
           id: "heading-reveal",
           onEnterBack: () => {
             gsap.set("[data-gsap='first-heading']", {
-              "--gradient-position": "-10% -10%",
+              "--gradient-position": "-14% -14%",
             })
           }
         },
@@ -547,7 +548,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
         "--gradient-color": "rgb(0, 149, 236)",
       },
       {
-        "--gradient-color": "rgb(0, 0, 0)",
+        "--gradient-color": "#FDF6E2",
         ease: "none",
         immediateRender: false,
         scrollTrigger: {
@@ -569,7 +570,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
       "[data-gsap='first-heading']",
       {
         "--gradient-size": "120%",
-        "--gradient-color": "rgb(0, 0, 0)",
+        "--gradient-color": "#FDF6E2",
       },
       {
         "--gradient-size": "0%",
@@ -602,7 +603,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
           id: "heading-reveal",
           onEnter: () => {
             gsap.set("[data-gsap='first-heading']", {
-              "--gradient-position": "-10% -10%",
+              "--gradient-position": "-14% -14%",
             })
             setText(secondText)
           },
@@ -644,10 +645,10 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
       <div className='relative w-full h-full'>
         <p
           data-gsap="first-heading"
-          className='absolute top-[30vh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black text-[84px] font-riforma-bold leading-[85%] tracking-[-6px] text-balance text-center select-none'
+          className='absolute top-[30vh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black text-[84px] [@media(max-height:920px)]:text-[74px] [@media(max-height:800px)]:text-[64px]! font-riforma-bold leading-[85%] tracking-[-6%] text-balance text-center select-none'
           style={{
             '--gradient-size': '0%',
-            '--gradient-position': '-10% -10%',
+            '--gradient-position': '-14% -14%',
             '--gradient-x': '50%',
             '--gradient-y': '50%',
             '--gradient-color': 'rgb(0, 149, 236)',
@@ -705,7 +706,7 @@ const HeroTitle = ({ heading }: { heading: string }) => {
       <div className='relative w-full h-full'>
         <p
           data-gsap="hero-heading"
-          className='font-riforma-bold tracking-[-6px] leading-[85%] text-[84px] [@media(max-height:920px)]:text-[74px] text-background w-[800px] text-balance text-center mb-[165px] [@media(max-height:920px)]mb-[145px] pb-[20px]'
+          className='font-riforma-bold tracking-[-6%] leading-[85%] text-[84px] [@media(max-height:920px)]:text-[74px] [@media(max-height:800px)]:text-[64px]! text-background w-[800px] text-balance text-center mb-[145px] [@media(max-height:920px)]:mb-[125px] [@media(max-height:800px)]:mb-[90px]! pb-[20px]'
           style={{
             '--gradient-size': '0%',
             '--gradient-position': '-12% -12%',
@@ -802,7 +803,7 @@ export default function Hero({ block }: HeroProps) {
       opacity: 1,
       scrollTrigger: {
         trigger: "[data-gsap='hero']",
-        start: "25% 50%",
+        start: "17% 50%",
         end: "45% 50%",
         scrub: true,
       }
@@ -848,15 +849,15 @@ export default function Hero({ block }: HeroProps) {
   if (!setHeroMounted) return;
 
   return (
-    <div data-gsap="hero" className="w-full h-[280vh] relative bg-background overflow-x-clip">
+    <div data-gsap="hero" className="w-full h-[280svh] relative bg-background overflow-x-clip">
       {block?.firstText && (
           <HeroTexts firstText={block?.firstText} secondText={block?.secondText} />
       )}
       {/* Behind the box (z-0) */}
       <div className='flex items-center justify-center flex-col gap-[25px] absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
-        <div data-gsap="hero-init" className='flex gap-[30px] items-center justify-center'>
-          <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[18px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
-          <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[18px] text-background text-center'>
+        <div data-gsap="hero-init" className='flex gap-[15px] items-center justify-center'>
+          <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[14px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
+          <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[16px] text-background text-center'>
             <span>5.0</span>
             <span className='inline-flex items-center justify-center'>
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="13" viewBox="0 0 14 13" fill="none">
@@ -877,14 +878,14 @@ export default function Hero({ block }: HeroProps) {
       {/* Base Canvas (z-[5]) */}
       <div
         data-canvas="base"
-        className="sticky top-0 w-full h-screen z-[5] pointer-events-none"
+        className="sticky top-0 w-full h-[100svh] z-[5] pointer-events-none"
       >
-        <div className="relative w-full h-screen pointer-events-none">
+        <div className="relative w-full h-[100svh] pointer-events-none">
           {mounted && (
             <Canvas
               camera={{ fov: 18.18, position: [0, 0, 35] }}
               style={{ pointerEvents: 'none' }}
-              className='pointer-events-none w-full h-screen'>
+              className='pointer-events-none w-full h-[100svh]'>
               <CameraController />
               {/* <BaseLights /> */}
               <Suspense fallback={null}>
@@ -900,14 +901,14 @@ export default function Hero({ block }: HeroProps) {
       {/* Box Canvas (z-10) */}
       <div
         data-canvas="box"
-        className="sticky top-0 w-full h-screen z-10 pointer-events-none -mt-[100vh]"
+        className="sticky top-0 w-full h-[100svh] z-10 pointer-events-none -mt-[100vh]"
       >
-        <div className="relative w-full h-screen pointer-events-none">
+        <div className="relative w-full h-[100svh] pointer-events-none">
           {mounted && (
             <Canvas
               camera={{ fov: 18.18, position: [0, 0, 35] }}
               style={{ pointerEvents: 'none' }}
-              className='pointer-events-none w-full h-screen'>
+              className='pointer-events-none w-full h-[100svh]'>
               <CameraController />
               <Environment preset='forest' environmentIntensity={1} />
               <DirectionalLightWithControls />
@@ -965,7 +966,7 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Bottom part */}
-      <div data-gsap="hero-init" className='absolute top-[81vh] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] w-screen '>
+      <div data-gsap="hero-init" className='absolute [@media(max-height:800px)]:top-[77svh] top-[81svh] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] w-screen '>
 
           <div className='flex gap-[35px] items-center'>
             <p className='text-black font-riforma-bold text-[28px] leading-[110%]'>{block?.bottomText}</p>
@@ -981,7 +982,7 @@ export default function Hero({ block }: HeroProps) {
 
 
       {/* Hero dim */}
-      <div data-gsap="hero-dim" className='opacity-0 w-screen h-[50vh] bg-linear-to-b from-[#110F0B]/75 to-[#110F0B00] sticky top-0 left-0 -mt-[100vh] z-50 pointer-events-none select-none' />
+      <div data-gsap="hero-dim" className='opacity-0 w-screen h-[50vh] bg-linear-to-b from-[#110F0B]/90 to-[#110F0B00] sticky top-0 left-0 -mt-[100vh] z-50 pointer-events-none select-none' />
       
     </div>
   )

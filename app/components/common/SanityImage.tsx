@@ -101,8 +101,19 @@ export default function SanityImage({
   const src = urlForImage({ asset, hotspot, crop })?.url() || asset?.url
   if (!src) return null
 
+  const sanityLoader = ({ src: loaderSrc, width: loaderWidth, quality: loaderQuality }: { src: string, width: number, quality?: number }) => {
+    if (loaderSrc.includes('cdn.sanity.io')) {
+      const url = new URL(loaderSrc)
+      url.searchParams.set('w', loaderWidth.toString())
+      if (loaderQuality) url.searchParams.set('q', loaderQuality.toString())
+      return url.toString()
+    }
+    return loaderSrc
+  }
+
   return (
     <Image
+      loader={sanityLoader}
       ref={ref}
       alt={alt || ''}
       src={src}

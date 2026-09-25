@@ -33,12 +33,12 @@ const InstancedGrass = ({
 }) => {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
-  const { bladeWidthMultiplier, grassCountK } = useControls({
-    bladeWidthMultiplier: { value: 2.0, min: 0.1, max: 3.0, step: 0.1, label: 'Thickness' },
-    grassCountK: { value: count / 1000, min: 48, max: 200, step: 1, label: 'Amount' }
-  })
+  // const { bladeWidthMultiplier, grassCountK } = useControls({
+  //   bladeWidthMultiplier: { value: 2.0, min: 0.1, max: 3.0, step: 0.1, label: 'Thickness' },
+  //   grassCountK: { value: count / 1000, min: 48, max: 200, step: 1, label: 'Amount' }
+  // })
 
-  const grassCount = grassCountK * 1000
+  const grassCount = 88000
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry()
@@ -47,7 +47,7 @@ const InstancedGrass = ({
     // Heights: 0.0 (base), 0.22, 0.48, 0.75, 1.0 (tip)
     // Widths taper smoothly from base to tip with slight cross-sectional curvature
     const bladeHeight = 0.85
-    const w = bladeWidthMultiplier
+    const w = 0.7
     const positions = new Float32Array([
       // Row 0: base (y = 0.0)
       -0.07 * w, 0.00 * bladeHeight, 0.0,
@@ -111,7 +111,7 @@ const InstancedGrass = ({
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 100)
 
     return geo
-  }, [bladeWidthMultiplier])
+  }, [])
 
   const [positions, rotations, scales, colors] = useMemo(() => {
     const MAX_GRASS_COUNT = 200000
