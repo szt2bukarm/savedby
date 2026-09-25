@@ -440,18 +440,33 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
   useGSAP(() => {
     if (!marqueeRef.current || !trackRef.current || logos.length === 0) return
 
-    const trackWidth = trackRef.current.offsetWidth
+    let tween: gsap.core.Tween
 
-    gsap.fromTo(
-      marqueeRef.current,
-      { x: -trackWidth },
-      {
+    const createMarquee = () => {
+      if (tween) tween.kill()
+      const trackWidth = trackRef.current!.offsetWidth
+      gsap.set(marqueeRef.current!, { x: -trackWidth })
+      tween = gsap.to(marqueeRef.current!, {
         x: 0,
         duration: logos.length * 2,
         repeat: -1,
         ease: 'none',
-      }
-    )
+      })
+    }
+
+    createMarquee()
+
+    let resizeTimeout: ReturnType<typeof setTimeout>
+    const onResize = () => {
+      clearTimeout(resizeTimeout)
+      resizeTimeout = setTimeout(createMarquee, 200)
+    }
+
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      clearTimeout(resizeTimeout)
+    }
   }, [logos.length])
 
   if (!logos.length) return null
@@ -463,7 +478,7 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
       return (
         <div
-          className="h-[40px] flex items-center justify-center shrink-0 "
+          className="h-[40px] max-h-sm:h-[30px] flex items-center justify-center shrink-0 "
           key={`${duplicate ? 'dup' : 'original'}-${logo._key || i}`}
         >
           <SanityImage
@@ -485,14 +500,14 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
         {/* Track 1 */}
         <div
           ref={trackRef}
-          className="flex gap-[80px] items-center shrink-0 pr-[80px]"
+          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
         >
           {renderLogos()}
         </div>
 
         {/* Track 2 */}
         <div
-          className="flex gap-[80px] items-center shrink-0 pr-[80px]"
+          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
           aria-hidden="true"
         >
           {renderLogos(true)}
@@ -500,7 +515,15 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
         {/* Track 3 */}
         <div
-          className="flex gap-[80px] items-center shrink-0 pr-[80px]"
+          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
+          aria-hidden="true"
+        >
+          {renderLogos(true)}
+        </div>
+
+        {/* Track 4 */}
+        <div
+          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
           aria-hidden="true"
         >
           {renderLogos(true)}
@@ -645,7 +668,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
       <div className='relative w-full h-full'>
         <p
           data-gsap="first-heading"
-          className='absolute top-[30vh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black text-[84px] [@media(max-height:920px)]:text-[74px] [@media(max-height:800px)]:text-[64px]! font-riforma-bold leading-[85%] tracking-[-6%] text-balance text-center select-none'
+          className='absolute top-[30vh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black text-[84px] max-h-lg:text-[74px] max-h-md:text-[64px] max-h-sm:text-[54px] font-riforma-bold leading-[85%] tracking-[-6%] text-balance text-center select-none pb-[20px]'
           style={{
             '--gradient-size': '0%',
             '--gradient-position': '-14% -14%',
@@ -706,7 +729,7 @@ const HeroTitle = ({ heading }: { heading: string }) => {
       <div className='relative w-full h-full'>
         <p
           data-gsap="hero-heading"
-          className='font-riforma-bold tracking-[-6%] leading-[85%] text-[84px] [@media(max-height:920px)]:text-[74px] [@media(max-height:800px)]:text-[64px]! text-background w-[800px] text-balance text-center mb-[145px] [@media(max-height:920px)]:mb-[125px] [@media(max-height:800px)]:mb-[90px]! pb-[20px]'
+          className='font-riforma-bold tracking-[-6%] leading-[85%] text-[84px] max-h-lg:text-[74px] max-h-md:text-[64px] max-h-sm:text-[54px] text-background w-[800px] text-balance text-center mb-[145px] max-h-lg:mb-[125px] max-h-md:mb-[90px] max-h-sm:mb-[50px] pb-[20px]'
           style={{
             '--gradient-size': '0%',
             '--gradient-position': '-12% -12%',
@@ -854,7 +877,7 @@ export default function Hero({ block }: HeroProps) {
           <HeroTexts firstText={block?.firstText} secondText={block?.secondText} />
       )}
       {/* Behind the box (z-0) */}
-      <div className='flex items-center justify-center flex-col gap-[25px] absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
+      <div className='flex items-center justify-center flex-col gap-[25px] max-h-sm:gap-[5px] absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
         <div data-gsap="hero-init" className='flex gap-[15px] items-center justify-center'>
           <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[14px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
           <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[16px] text-background text-center'>
@@ -966,7 +989,7 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Bottom part */}
-      <div data-gsap="hero-init" className='absolute [@media(max-height:800px)]:top-[77svh] top-[81svh] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] w-screen '>
+      <div data-gsap="hero-init" className='absolute top-[calc(100svh-170px)] max-h-md:top-[calc(100svh-140px)] max-h-sm:top-[calc(100svh-130px)] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] max-h-md:gap-[30px] max-h-sm:gap-[20px] w-screen '>
 
           <div className='flex gap-[35px] items-center'>
             <p className='text-black font-riforma-bold text-[28px] leading-[110%]'>{block?.bottomText}</p>

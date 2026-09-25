@@ -11,8 +11,8 @@ const AnchorDown = () => {
 
 export default function Nav() {
     return (
-        <nav className="fixed z-[100] h-[120px] top-0 left-0 w-screen px-[120px] py-[40px] flex items-center justify-between pointer-events-none">
-            <img src={"/assets/logo.svg"} className='absolute left-1/2 -translate-1/2 top-[60px] w-[145px] h-[42px] pointer-events-auto' />
+        <nav className="fixed z-[100]  top-0 left-0 w-screen px-[120px] py-[40px] max-h-sm:py-[25px] flex items-center justify-between pointer-events-none">
+            <img src={"/assets/logo.svg"} className='absolute left-1/2 -translate-1/2 top-[60px] max-h-sm:top-[45px] w-[145px] h-[42px] pointer-events-auto' />
 
             <div className="flex gap-[27px] pointer-events-auto">
 

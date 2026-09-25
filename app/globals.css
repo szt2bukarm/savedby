@@ -33,3 +33,9 @@ body {
   --font-riforma-regular: var(--font-riforma-regular);
   --font-riforma-medium: var(--font-riforma-medium);
 }
+
+/* ===== HEIGHT BREAKPOINTS ===== */
+/* Usage: max-h-sm:py-[20px]  max-h-md:text-[64px]  max-h-lg:text-[74px] */
+@custom-variant max-h-lg (@media (max-height: 920px));
+@custom-variant max-h-md (@media (max-height: 800px));
+@custom-variant max-h-sm (@media (max-height: 650px));
