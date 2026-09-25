@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
+import { useControls } from 'leva'
 import { MeshSurfaceSampler } from 'three/addons/math/MeshSurfaceSampler.js'
 import { grassVertexShader, grassFragmentShader } from './heroShaders'
 
@@ -32,6 +33,13 @@ const InstancedGrass = ({
 }) => {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
+  const { bladeWidthMultiplier, grassCountK } = useControls({
+    bladeWidthMultiplier: { value: 2.0, min: 0.1, max: 3.0, step: 0.1, label: 'Thickness' },
+    grassCountK: { value: count / 1000, min: 48, max: 200, step: 1, label: 'Amount' }
+  })
+
+  const grassCount = grassCountK * 1000
+
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry()
     
@@ -39,19 +47,20 @@ const InstancedGrass = ({
     // Heights: 0.0 (base), 0.22, 0.48, 0.75, 1.0 (tip)
     // Widths taper smoothly from base to tip with slight cross-sectional curvature
     const bladeHeight = 0.85
+    const w = bladeWidthMultiplier
     const positions = new Float32Array([
       // Row 0: base (y = 0.0)
-      -0.11, 0.00 * bladeHeight, 0.0,
-       0.11, 0.00 * bladeHeight, 0.0,
+      -0.07 * w, 0.00 * bladeHeight, 0.0,
+       0.07 * w, 0.00 * bladeHeight, 0.0,
       // Row 1: lower (y = 0.22)
-      -0.10, 0.22 * bladeHeight, 0.004,
-       0.10, 0.22 * bladeHeight, 0.004,
+      -0.06 * w, 0.22 * bladeHeight, 0.004,
+       0.06 * w, 0.22 * bladeHeight, 0.004,
       // Row 2: mid (y = 0.48)
-      -0.08, 0.48 * bladeHeight, 0.008,
-       0.08, 0.48 * bladeHeight, 0.008,
+      -0.048 * w, 0.48 * bladeHeight, 0.008,
+       0.048 * w, 0.48 * bladeHeight, 0.008,
       // Row 3: upper (y = 0.75)
-      -0.05, 0.75 * bladeHeight, 0.005,
-       0.05, 0.75 * bladeHeight, 0.005,
+      -0.024 * w, 0.75 * bladeHeight, 0.005,
+       0.024 * w, 0.75 * bladeHeight, 0.005,
       // Row 4: tip (y = 1.0)
        0.00, 1.00 * bladeHeight, 0.0,
     ])
@@ -102,13 +111,14 @@ const InstancedGrass = ({
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 100)
 
     return geo
-  }, [])
+  }, [bladeWidthMultiplier])
 
   const [positions, rotations, scales, colors] = useMemo(() => {
-    const positions = new Float32Array(count * 3)
-    const rotations = new Float32Array(count)
-    const scales = new Float32Array(count)
-    const colors = new Float32Array(count * 3)
+    const MAX_GRASS_COUNT = 200000
+    const positions = new Float32Array(MAX_GRASS_COUNT * 3)
+    const rotations = new Float32Array(MAX_GRASS_COUNT)
+    const scales = new Float32Array(MAX_GRASS_COUNT)
+    const colors = new Float32Array(MAX_GRASS_COUNT * 3)
 
     const baseColor = new THREE.Color('#43a328')
     const colorVariance = 0.05
@@ -120,7 +130,7 @@ const InstancedGrass = ({
       sampler = new MeshSurfaceSampler(samplerMesh).build()
     }
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < MAX_GRASS_COUNT; i++) {
       let rx = 0, rz = 0, ry = 0;
       
       if (sampler) {
@@ -167,7 +177,7 @@ const InstancedGrass = ({
       new THREE.InstancedBufferAttribute(scales, 1),
       new THREE.InstancedBufferAttribute(colors, 3),
     ]
-  }, [count, width, depth, samplerMesh])
+  }, [width, depth, samplerMesh])
 
   const gustsRef = useRef<GustData[]>([
     { active: true, x: 8.0, z: -2.0, speed: 4.8, strength: 1.05, width: 17.0, radiusZ: 18.0, angle: 0.03 },
@@ -277,9 +287,10 @@ const InstancedGrass = ({
   return (
     <mesh position={position} frustumCulled={false}>
       <instancedBufferGeometry
+        key={geometry.uuid}
         index={geometry.index}
         attributes={geometry.attributes}
-        instanceCount={count}
+        instanceCount={grassCount}
       >
         <primitive object={positions} attach="attributes-instancePosition" />
         <primitive object={rotations} attach="attributes-instanceRotation" />

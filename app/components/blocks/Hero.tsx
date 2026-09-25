@@ -705,7 +705,7 @@ const HeroTitle = ({ heading }: { heading: string }) => {
       <div className='relative w-full h-full'>
         <p
           data-gsap="hero-heading"
-          className='font-riforma-bold tracking-[-6px] leading-[85%] text-[84px] text-background w-[800px] text-balance text-center mb-[185px]'
+          className='font-riforma-bold tracking-[-6px] leading-[85%] text-[84px] [@media(max-height:920px)]:text-[74px] text-background w-[800px] text-balance text-center mb-[165px] [@media(max-height:920px)]mb-[145px] pb-[20px]'
           style={{
             '--gradient-size': '0%',
             '--gradient-position': '-12% -12%',
@@ -802,8 +802,8 @@ export default function Hero({ block }: HeroProps) {
       opacity: 1,
       scrollTrigger: {
         trigger: "[data-gsap='hero']",
-        start: "40% 50%",
-        end: "60% 50%",
+        start: "25% 50%",
+        end: "45% 50%",
         scrub: true,
       }
     }    
@@ -981,7 +981,7 @@ export default function Hero({ block }: HeroProps) {
 
 
       {/* Hero dim */}
-      <div data-gsap="hero-dim" className='opacity-0 w-screen h-[50vh] bg-linear-to-b from-[#110F0B]/75 to-[#110F0B00] sticky top-0 left-0 -mt-[100vh] z-50' />
+      <div data-gsap="hero-dim" className='opacity-0 w-screen h-[50vh] bg-linear-to-b from-[#110F0B]/75 to-[#110F0B00] sticky top-0 left-0 -mt-[100vh] z-50 pointer-events-none select-none' />
       
     </div>
   )
