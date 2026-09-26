@@ -689,7 +689,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
       <div className='relative w-full h-full'>
         <p
           data-gsap="first-heading"
-          className='absolute top-[30svh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] whitespace-pre-line text-center select-none pb-[20px] px-[40px] w-full md:w-[800px]
+          className='absolute top-[30svh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] whitespace-pre-line text-center select-none pb-[20px] px-[40px] w-full md:w-[865px]
           [--tw:9vw] md:[--tw:67px] lg:[--tw:84px] 
           max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px] 
           text-[length:min(var(--tw),var(--th,var(--tw)))]'
@@ -753,7 +753,7 @@ const HeroTitle = ({ heading }: { heading: string }) => {
       <div className='relative w-full h-full'>
         <p
           data-gsap="hero-heading"
-          className='font-riforma-bold tracking-[-6%] leading-[85%] text-background w-full md:w-[800px] md:whitespace-pre-line text-center px-[40px] pb-[20px] 
+          className='font-riforma-bold tracking-[-6%] leading-[85%] text-background w-full md:w-[865px] md:whitespace-pre-line text-center px-[40px] pb-[20px] 
           [--tw:9vw] md:[--tw:67px] lg:[--tw:84px]
           max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px]
           text-[length:min(var(--tw),var(--th,var(--tw)))] 
