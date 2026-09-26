@@ -186,11 +186,12 @@ const Hero3DBox = ({
       }
     )
 
+     const posProxy = { y: 2, z: 0 };
     gsap.fromTo(
-      boxRef.current.position,
-      { x: 0, y: 2, z: 0 },
+      posProxy,
+      { y: 2, z: 0 },
       {
-        y: -1.8,
+        y: () => window.innerWidth < 768 ? -1.9 : -1.8,
         z: 1.5,
         ease: "none",
         immediateRender: false,
@@ -199,6 +200,13 @@ const Hero3DBox = ({
           start: "75% bottom",
           end: "100% bottom",
           scrub: true,
+          invalidateOnRefresh: true,
+          onUpdate: () => {
+            if (boxRef.current) {
+              boxRef.current.position.y = posProxy.y;
+              boxRef.current.position.z = posProxy.z;
+            }
+          },
           onLeaveBack: () => {
             if (!boxRef.current) return;
            gsap.set(boxRef.current?.position, { y: -0.5, z: 0 }) 
@@ -425,9 +433,20 @@ const CameraController = () => {
 
   useEffect(() => {
     if (!camera) return
-    const verticalFov = 2 * Math.atan(24 / (2 * 110)) * (180 / Math.PI)
-    camera.fov = verticalFov
-    camera.updateProjectionMatrix()
+    
+    const handleResize = () => {
+      const verticalFov = 2 * Math.atan(24 / (2 * 110)) * (180 / Math.PI)
+      camera.fov = verticalFov
+      
+      const isMobile = window.innerWidth < 768
+      camera.position.z = isMobile ? 40 : 35
+      
+      camera.updateProjectionMatrix()
+    }
+
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [camera])
 
   return null
@@ -478,7 +497,7 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
       return (
         <div
-          className="h-[40px] max-h-sm:h-[30px] flex items-center justify-center shrink-0 "
+          className="h-[30px] md:h-[40px] md:max-h-sm:h-[30px] flex items-center justify-center shrink-0 "
           key={`${duplicate ? 'dup' : 'original'}-${logo._key || i}`}
         >
           <SanityImage
@@ -491,8 +510,10 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
       )
     })
 
+    const trackClasses = `flex md:gap-[80px] gap-[60px] md:max-h-sm:gap-[60px] items-center shrink-0 pr-[60px] md:pr-[80px] md:max-h-sm:pr-[60px]`
+
   return (
-    <div className="w-screen ">
+    <div className="w-full ">
       <div
         ref={marqueeRef}
         className="flex w-fit will-change-transform"
@@ -500,14 +521,14 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
         {/* Track 1 */}
         <div
           ref={trackRef}
-          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
+          className={trackClasses}
         >
           {renderLogos()}
         </div>
 
         {/* Track 2 */}
         <div
-          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
+          className={trackClasses}
           aria-hidden="true"
         >
           {renderLogos(true)}
@@ -515,7 +536,7 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
         {/* Track 3 */}
         <div
-          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
+          className={trackClasses}
           aria-hidden="true"
         >
           {renderLogos(true)}
@@ -523,7 +544,7 @@ const LogoMarquee = ({ logos }: { logos: any[] }) => {
 
         {/* Track 4 */}
         <div
-          className="flex gap-[80px] max-h-sm:gap-[60px] items-center shrink-0 pr-[80px] max-h-sm:pr-[60px]"
+          className={trackClasses}
           aria-hidden="true"
         >
           {renderLogos(true)}
@@ -664,11 +685,14 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
   }, [firstText, secondText])
 
   return (
-    <div data-gsap="heading-wrapper" className='sticky top-0 w-screen h-[100vh] -mb-[100vh] z-[51] pointer-events-none'>
+    <div data-gsap="heading-wrapper" className='sticky top-0 w-full h-[100svh] -mb-[100svh] z-[51] pointer-events-none'>
       <div className='relative w-full h-full'>
         <p
           data-gsap="first-heading"
-          className='absolute top-[30vh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black text-[84px] max-h-lg:text-[74px] max-h-md:text-[64px] max-h-sm:text-[54px] font-riforma-bold leading-[85%] tracking-[-6%] text-balance text-center select-none pb-[20px]'
+          className='absolute top-[30svh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] whitespace-pre-line text-center select-none pb-[20px] px-[40px] w-full md:w-[800px]
+          [--tw:9vw] md:[--tw:67px] lg:[--tw:84px] 
+          max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px] 
+          text-[length:min(var(--tw),var(--th,var(--tw)))]'
           style={{
             '--gradient-size': '0%',
             '--gradient-position': '-14% -14%',
@@ -729,7 +753,13 @@ const HeroTitle = ({ heading }: { heading: string }) => {
       <div className='relative w-full h-full'>
         <p
           data-gsap="hero-heading"
-          className='font-riforma-bold tracking-[-6%] leading-[85%] text-[84px] max-h-lg:text-[74px] max-h-md:text-[64px] max-h-sm:text-[54px] text-background w-[800px] text-balance text-center mb-[145px] max-h-lg:mb-[125px] max-h-md:mb-[90px] max-h-sm:mb-[50px] pb-[20px]'
+          className='font-riforma-bold tracking-[-6%] leading-[85%] text-background w-full md:w-[800px] md:whitespace-pre-line text-center px-[40px] pb-[20px] 
+          [--tw:9vw] md:[--tw:67px] lg:[--tw:84px]
+          max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px]
+          text-[length:min(var(--tw),var(--th,var(--tw)))] 
+          [--mb-w:135px] md:[--mb-w:125px]
+          md:max-h-lg:[--mb-h:125px] md:max-h-md:[--mb-h:90px] md:max-h-sm:[--mb-h:50px] 
+          mb-[min(var(--mb-w),var(--mb-h,var(--mb-w)))]'
           style={{
             '--gradient-size': '0%',
             '--gradient-position': '-12% -12%',
@@ -873,12 +903,15 @@ export default function Hero({ block }: HeroProps) {
 
   return (
     <div data-gsap="hero" className="w-full h-[280svh] relative bg-background overflow-x-clip">
+
       {block?.firstText && (
           <HeroTexts firstText={block?.firstText} secondText={block?.secondText} />
       )}
+
       {/* Behind the box (z-0) */}
-      <div className='flex items-center justify-center flex-col gap-[25px] max-h-sm:gap-[5px] absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
-        <div data-gsap="hero-init" className='flex gap-[15px] items-center justify-center'>
+      <div className='flex items-center justify-center flex-col gap-[15px] max-h-md:gap-[10px] max-h-sm:gap-[5px] absolute top-0 left-0 w-full h-[70svh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
+
+        <div data-gsap="hero-init" className='flex flex-col md:flex-row gap-[5px] md:gap-[15px] items-center justify-center'>
           <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[14px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
           <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[16px] text-background text-center'>
             <span>5.0</span>
@@ -944,8 +977,9 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Left cloud (behind box, z-0) */}
-      <div data-gsap="left-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none mix-blend-screen'>
-        <div className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit'>
+      <div data-gsap="left-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70svh] z-0 pointer-events-none mix-blend-screen'>
+        <div className='absolute bottom-[-150px] left-1/2 
+        w-[1000px] ml-[-700px] md:ml-[-1000px]  lg:ml-[-1500px] lg:w-[1500px] h-fit'>
           <img
             src="/assets/c3.jpg"
             alt=""
@@ -954,8 +988,9 @@ export default function Hero({ block }: HeroProps) {
           />
         </div>
       </div>
-      <div data-gsap="left-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70vh] z-0 pointer-events-none mix-blend-screen'>
-        <div className='absolute bottom-[-150px] left-[-25vw] w-[70vw] h-fit'>
+      <div data-gsap="left-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70svh] z-0 pointer-events-none mix-blend-screen'>
+        <div className='absolute bottom-[-150px] left-1/2 
+        ml-[-700px] md:ml-[-1000px] w-[1000px] lg:ml-[-1500px] lg:w-[1500px]  h-fit'>
           <img
             src="/assets/c2.jpg"
             alt=""
@@ -966,9 +1001,10 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Right cloud (z-20) */}
-      <div data-gsap="right-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none mix-blend-screen'>
+      <div data-gsap="right-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70svh] z-20 pointer-events-none mix-blend-screen'>
        
-        <div className='absolute bottom-[-150px] right-[-5vw] w-[55vw] h-fit'>
+        <div className='absolute bottom-[-150px] left-1/2 
+        w-[1000px] ml-[0px] md:w-[1000px] md:ml-[155px] lg:ml-[100px] lg:w-[1500px] h-fit'>
           <img
           src="/assets/c4.jpg"
           alt=""
@@ -977,8 +1013,9 @@ export default function Hero({ block }: HeroProps) {
         />
         </div>
       </div>
-      <div data-gsap="right-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70vh] z-20 pointer-events-none mix-blend-screen'>
-        <div className='absolute bottom-[-150px] right-[-5vw] w-[55vw] h-fit'>
+      <div data-gsap="right-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70svh] z-20 pointer-events-none mix-blend-screen'>
+        <div className='absolute bottom-[-150px] left-1/2 
+        w-[1000px] ml-[0px] md:w-[1000px] md:ml-[155px] lg:ml-[100px] lg:w-[1500px] h-fit'>
           <img
           src="/assets/c1.jpg"
           alt=""
@@ -989,12 +1026,16 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Bottom part */}
-      <div data-gsap="hero-init" className='absolute top-[calc(100svh-170px)] max-h-md:top-[calc(100svh-140px)] max-h-sm:top-[calc(100svh-130px)] z-[2] pointer-events-auto flex flex-col items-center gap-[50px] max-h-md:gap-[30px] max-h-sm:gap-[20px] w-screen '>
+      <div data-gsap="hero-init" className='absolute z-[2] pointer-events-auto flex flex-col items-center w-full
+      top-[calc(100svh-170px)]
+      md:top-[calc(100svh-170px)] md:max-h-md:top-[calc(100svh-140px)] md:max-h-sm:top-[calc(100svh-130px)] 
+      gap-[30px] 
+      md:max-h-md:gap-[30px] md:max-h-sm:gap-[20px]'>
 
-          <div className='flex gap-[35px] items-center'>
-            <p className='text-black font-riforma-bold text-[28px] leading-[110%]'>{block?.bottomText}</p>
+          <div className='flex flex-col md:flex-row gap-[15px] md:gap-[35px] items-center'>
+            <p className='text-black font-riforma-bold text-[22px] md:text-[28px] leading-[110%]'>{block?.bottomText}</p>
             {block?.button?.text && block?.button?.href && (
-              <Button text={block?.button?.text} href={block?.button?.href} />
+              <Button className='px-[48px] py-[10px] md:px-[64px] md:py-[13px]' text={block?.button?.text} href={block?.button?.href} />
             )}
           </div>
 
@@ -1005,7 +1046,7 @@ export default function Hero({ block }: HeroProps) {
 
 
       {/* Hero dim */}
-      <div data-gsap="hero-dim" className='opacity-0 w-screen h-[50vh] bg-linear-to-b from-[#110F0B]/90 to-[#110F0B00] sticky top-0 left-0 -mt-[100vh] z-50 pointer-events-none select-none' />
+      <div data-gsap="hero-dim" className='opacity-0 w-full h-[50svh] bg-linear-to-b from-[#110F0B]/90 to-[#110F0B00] sticky top-0 left-0 -mt-[100svh] z-50 pointer-events-none select-none' />
       
     </div>
   )

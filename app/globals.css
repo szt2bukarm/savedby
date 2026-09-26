@@ -25,7 +25,7 @@ body {
   --breakpoint-xs: 480px;
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
-  --breakpoint-lg: 1100px;
+  --breakpoint-lg: 1024px;
   --breakpoint-xl: 1440px;
 
   /* ===== FONTS ===== */
@@ -38,4 +38,4 @@ body {
 /* Usage: max-h-sm:py-[20px]  max-h-md:text-[64px]  max-h-lg:text-[74px] */
 @custom-variant max-h-lg (@media (max-height: 920px));
 @custom-variant max-h-md (@media (max-height: 800px));
-@custom-variant max-h-sm (@media (max-height: 650px));
+@custom-variant max-h-sm (@media (max-height: 670px));
