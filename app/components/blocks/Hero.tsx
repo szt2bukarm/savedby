@@ -2,23 +2,33 @@
 import { useState, useEffect, useMemo, Suspense, useRef } from 'react'
 import type { SanityImageData } from '@/types/sanity'
 import SanityImage from '../common/SanityImage'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useThree, createPortal } from '@react-three/fiber'
 import { Environment, OrbitControls, useGLTF, useTexture, Preload } from '@react-three/drei'
 import type { PerspectiveCamera } from 'three'
 import * as THREE from 'three'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { CustomEase } from 'gsap/CustomEase'
 import Button from '../common/Button'
+import LogoMarquee from '../common/LogoMarquee'
+import GradientRevealText from '../common/GradientRevealText'
 import {
   applyBoxDissolveShader,
   createDoorTransitionMaterial,
   createFakeShadowMaterial,
 } from './Hero/heroShaders'
 import { useLenis } from 'lenis/react'
+import { useAppContext } from '@/app/AppContext'
 import InstancedGrass from './Hero/InstancedGrass'
 import { useStickers } from './Hero/useStickers'
-gsap.registerPlugin(ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, CustomEase)
+
+// Linear for ~85%, then smoothly and gradually feathers to 0 velocity at the end
+CustomEase.create(
+  "linearSmoothEnd",
+  "M0,0 L0.85,0.895 C0.9,0.947 0.94,1 1,1"
+)
 
 interface HeroData {
   heading?: string
@@ -73,6 +83,14 @@ const Hero3DBox = ({
         { progress: 1, ease: "power2.out", duration: 1.5 },
         staggerOffset
       )
+    })
+
+    // Guarantee the end state even if a tween was skipped (long frame, tab throttling)
+    tlIntro.call(() => {
+      stickersRef.current.forEach((sticker) => {
+        sticker.opacity = 1
+        sticker.progress = 1
+      })
     })
   }, [stickersReady, stickersApplied])
 
@@ -175,7 +193,7 @@ const Hero3DBox = ({
         x: 0.1,
         y: -1,
         z: 0,
-        ease: "none",
+        ease: "linearSmoothEnd",
         immediateRender: false,
         scrollTrigger: {
           trigger: "[data-gsap='hero']",
@@ -193,7 +211,7 @@ const Hero3DBox = ({
       {
         y: () => window.innerWidth < 768 ? -1.9 : -1.8,
         z: 1.5,
-        ease: "none",
+        ease: "linearSmoothEnd",
         immediateRender: false,
         scrollTrigger: {
           trigger: "[data-gsap='hero']",
@@ -211,6 +229,30 @@ const Hero3DBox = ({
             if (!boxRef.current) return;
            gsap.set(boxRef.current?.position, { y: -0.5, z: 0 }) 
           }
+        },
+      }
+    )
+
+    gsap.fromTo(
+      posProxy,
+      { y: () => window.innerWidth < 768 ? -1.9 : -1.8, z: 1.5 },
+      {
+        y: () => window.innerWidth < 768 ? -4.9 : -4.8,
+        z: 1.5,
+        ease: "none",
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: "[data-gsap='hero-outer']",
+          start: "102% bottom",
+          end: "150% bottom",
+          scrub: true,
+          invalidateOnRefresh: true,
+          onUpdate: () => {
+            if (boxRef.current) {
+              boxRef.current.position.y = posProxy.y;
+              boxRef.current.position.z = posProxy.z;
+            }
+          },
         },
       }
     )
@@ -335,7 +377,7 @@ const Hero3DBase = () => {
   useGSAP(() => {
     gsap.to(baseRef.current.rotation, {
       x: 0.1,
-      ease: "none",
+      ease: "linearSmoothEnd",
       scrollTrigger: {
         trigger: "[data-gsap='hero']",
         start: "50% bottom",
@@ -345,14 +387,36 @@ const Hero3DBase = () => {
     })
     gsap.to(baseRef.current.position, {
       y: -6.5,
-      ease: "none",
+      ease: "linearSmoothEnd",
       scrollTrigger: {
         trigger: "[data-gsap='hero']",
         start: "50% bottom",
         end: "bottom bottom",
         scrub: true,
-      }
+      },
     })
+
+    const basePosProxy = { y: -6.5 }
+    gsap.fromTo(
+      basePosProxy,
+      { y: -6.5 },
+      {
+        y: -10.5,
+        ease: "linear",
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: "[data-gsap='hero-outer']",
+          start: "102% bottom",
+          end: "150% bottom",
+          scrub: true,
+          onUpdate: () => {
+            if (baseRef.current) {
+              baseRef.current.position.y = basePosProxy.y
+            }
+          },
+        },
+      }
+    )
 
     // Door texture transition
     gsap.fromTo(
@@ -452,105 +516,89 @@ const CameraController = () => {
   return null
 }
 
-const LogoMarquee = ({ logos }: { logos: any[] }) => {
-  const marqueeRef = useRef<HTMLDivElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
 
-  useGSAP(() => {
-    if (!marqueeRef.current || !trackRef.current || logos.length === 0) return
 
-    let tween: gsap.core.Tween
+const SceneWarmup = ({ target, onReady }: { target: THREE.Scene; onReady: () => void }) => {
+  const gl = useThree((s) => s.gl)
+  const camera = useThree((s) => s.camera)
 
-    const createMarquee = () => {
-      if (tween) tween.kill()
-      const trackWidth = trackRef.current!.offsetWidth
-      gsap.set(marqueeRef.current!, { x: -trackWidth })
-      tween = gsap.to(marqueeRef.current!, {
-        x: 0,
-        duration: logos.length * 2,
-        repeat: -1,
-        ease: 'none',
-      })
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      try {
+        await gl.compileAsync(target, camera)
+      } catch {
+        gl.compile(target, camera)
+      }
+      // let the render loop upload textures / buffers for a few frames
+      for (let i = 0; i < 2; i++) {
+        await new Promise((r) => requestAnimationFrame(r))
+      }
+      if (!cancelled) onReady()
     }
-
-    createMarquee()
-
-    let resizeTimeout: ReturnType<typeof setTimeout>
-    const onResize = () => {
-      clearTimeout(resizeTimeout)
-      resizeTimeout = setTimeout(createMarquee, 200)
-    }
-
-    window.addEventListener('resize', onResize)
+    run()
     return () => {
-      window.removeEventListener('resize', onResize)
-      clearTimeout(resizeTimeout)
+      cancelled = true
     }
-  }, [logos.length])
+  }, [gl, camera, target, onReady])
 
-  if (!logos.length) return null
+  return null
+}
 
-  const renderLogos = (duplicate = false) =>
-    logos.map((logo, i) => {
-      const imageSource = logo.image || logo
-      const altText = duplicate ? '' : logo.alt || imageSource?.alt || ''
+const HeroScenes = ({
+  stickersApplied,
+  wobbleEnabled,
+  onReady,
+}: {
+  stickersApplied: boolean
+  wobbleEnabled: boolean
+  onReady: () => void
+}) => {
+  const baseScene = useMemo(() => new THREE.Scene(), [])
+  const boxScene = useMemo(() => new THREE.Scene(), [])
 
-      return (
-        <div
-          className="h-[30px] md:h-[40px] md:max-h-sm:h-[30px] flex items-center justify-center shrink-0 "
-          key={`${duplicate ? 'dup' : 'original'}-${logo._key || i}`}
-        >
-          <SanityImage
-            image={imageSource}
-            alt={altText}
-            sizes="150px"
-            className="w-auto h-full object-contain"
-          />
-        </div>
-      )
-    })
+  const readyCount = useRef(0)
+  const handleReady = useMemo(
+    () => () => {
+      readyCount.current += 1
+      if (readyCount.current === 2) onReady()
+    },
+    [onReady],
+  )
 
-    const trackClasses = `flex md:gap-[80px] gap-[60px] md:max-h-sm:gap-[60px] items-center shrink-0 pr-[60px] md:pr-[80px] md:max-h-sm:pr-[60px]`
+  // a positive priority takes over R3F's automatic render
+  useFrame(({ gl, camera }) => {
+    const autoClear = gl.autoClear
+    gl.autoClear = false
+    gl.clear()
+    gl.render(baseScene, camera)
+    gl.clearDepth()
+    gl.render(boxScene, camera)
+    gl.autoClear = autoClear
+  }, 1)
 
   return (
-    <div className="w-full ">
-      <div
-        ref={marqueeRef}
-        className="flex w-fit will-change-transform"
-      >
-        {/* Track 1 */}
-        <div
-          ref={trackRef}
-          className={trackClasses}
-        >
-          {renderLogos()}
-        </div>
-
-        {/* Track 2 */}
-        <div
-          className={trackClasses}
-          aria-hidden="true"
-        >
-          {renderLogos(true)}
-        </div>
-
-        {/* Track 3 */}
-        <div
-          className={trackClasses}
-          aria-hidden="true"
-        >
-          {renderLogos(true)}
-        </div>
-
-        {/* Track 4 */}
-        <div
-          className={trackClasses}
-          aria-hidden="true"
-        >
-          {renderLogos(true)}
-        </div>
-      </div>
-    </div>
+    <>
+      <CameraController />
+      {createPortal(
+        <Suspense fallback={null}>
+          <Hero3DBase />
+          <SceneWarmup target={baseScene} onReady={handleReady} />
+        </Suspense>,
+        baseScene,
+      )}
+      {createPortal(
+        <>
+          <Environment preset='forest' environmentIntensity={1} />
+          <DirectionalLightWithControls />
+          <Suspense fallback={null}>
+            <Hero3DBox stickersApplied={stickersApplied} wobbleEnabled={wobbleEnabled} />
+            <SceneWarmup target={boxScene} onReady={handleReady} />
+          </Suspense>
+        </>,
+        boxScene,
+      )}
+    </>
   )
 }
 
@@ -676,7 +724,39 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
           start: "90% bottom",
           end: "98% bottom",
           scrub: true,
-          id: "heading-color"
+          id: "heading-color",
+          onLeave: () => {
+            gsap.set("[data-gsap='first-heading']", {
+              "--gradient-position": "115% 115%",
+            })
+          },
+          onEnterBack: () => {
+            gsap.set("[data-gsap='first-heading']", {
+              "--gradient-position": "-14% -14%",
+            })
+          }
+        },
+      }
+    )
+
+
+    gsap.fromTo(
+      "[data-gsap='first-heading']",
+      {
+        "--gradient-size": "120%",
+        "--gradient-color": "#FDF6E2",
+      },
+      {
+        "--gradient-size": "0%",
+        "--gradient-color": "rgb(0, 149, 236)",
+        ease: "none",
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: "[data-gsap='hero']",
+          start: "110% bottom",
+          end: "120% bottom",
+          scrub: true,
+          id: "heading-color",
         },
       }
     )
@@ -685,31 +765,17 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
   }, [firstText, secondText])
 
   return (
-    <div data-gsap="heading-wrapper" className='sticky top-0 w-full h-[100svh] -mb-[100svh] z-[51] pointer-events-none'>
+    <div data-gsap="heading-wrapper" className='sticky top-0 w-full h-[100dvh] -mb-[100dvh] z-[51] pointer-events-none'>
       <div className='relative w-full h-full'>
-        <p
-          data-gsap="first-heading"
-          className='absolute top-[30svh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] whitespace-pre-line text-center select-none pb-[20px] px-[40px] w-full md:w-[865px]
+        <GradientRevealText
+          dataGsap="first-heading"
+          text={text}
+          fixFirefox={true}
+          className='absolute top-[30dvh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] whitespace-pre-line text-center select-none pb-[20px] px-[40px] w-full md:w-[865px]
           [--tw:9vw] md:[--tw:67px] lg:[--tw:84px] 
           max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px] 
           text-[length:min(var(--tw),var(--th,var(--tw)))]'
-          style={{
-            '--gradient-size': '0%',
-            '--gradient-position': '-14% -14%',
-            '--gradient-x': '50%',
-            '--gradient-y': '50%',
-            '--gradient-color': 'rgb(0, 149, 236)',
-            backgroundImage:
-              'radial-gradient(circle at var(--gradient-position, var(--gradient-x, 50%) var(--gradient-y, 50%)), var(--gradient-color, rgb(0, 0, 0)) 0%, var(--gradient-color, rgb(0, 0, 0)) var(--gradient-size, 0%), transparent calc(var(--gradient-size, 0%) + 15%))',
-            backgroundSize: '100% 100%',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            color: 'transparent',
-          } as React.CSSProperties}
-        >
-          {text}
-        </p>
+        />
       </div>
     </div>
   )
@@ -751,8 +817,10 @@ const HeroTitle = ({ heading }: { heading: string }) => {
 
   return (
       <div className='relative w-full h-full'>
-        <p
-          data-gsap="hero-heading"
+        <GradientRevealText
+          dataGsap="hero-heading"
+          text={heading}
+          fixFirefox={false}
           className='font-riforma-bold tracking-[-6%] leading-[85%] text-background w-full md:w-[865px] md:whitespace-pre-line text-center px-[40px] pb-[20px] 
           [--tw:9vw] md:[--tw:67px] lg:[--tw:84px]
           max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px]
@@ -761,22 +829,9 @@ const HeroTitle = ({ heading }: { heading: string }) => {
           md:max-h-lg:[--mb-h:125px] md:max-h-md:[--mb-h:90px] md:max-h-sm:[--mb-h:50px] 
           mb-[min(var(--mb-w),var(--mb-h,var(--mb-w)))]'
           style={{
-            '--gradient-size': '0%',
-            '--gradient-position': '-12% -12%',
-            '--gradient-x': '50%',
-            '--gradient-y': '50%',
-            '--gradient-color': 'rgb(0, 149, 236)',
-            backgroundImage:
-              'radial-gradient(circle at var(--gradient-position, var(--gradient-x, 50%) var(--gradient-y, 50%)), var(--gradient-color, rgb(0, 0, 0)) 0%, var(--gradient-color, rgb(0, 0, 0)) var(--gradient-size, 0%), transparent calc(var(--gradient-size, 0%) + 15%))',
-            backgroundSize: '100% 100%',
-            WebkitBackgroundClip: 'text',
-            backgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            color: 'transparent',
+            '--gradient-position': '-12% -12%'
           } as React.CSSProperties}
-        >
-          {heading}
-        </p>
+        />
       </div>
   )
 }
@@ -786,8 +841,12 @@ export default function Hero({ block }: HeroProps) {
   const [mounted, setMounted] = useState(false)
   const [stickersApplied, setStickersApplied] = useState(true)
   const [wobbleEnabled, setWobbleEnabled] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
+  const canvasDpr: number | [number, number] = isMobile ? 1 : [1, 1.5]
   const [heroMounted,setHeroMounted] = useState(false);
   const lenis = useLenis();
+  const { setIsSceneReady } = useAppContext()
+  const onSceneReady = useMemo(() => () => setIsSceneReady(true), [setIsSceneReady])
 
   useEffect(() => {
     if (!lenis) return;
@@ -801,6 +860,7 @@ export default function Hero({ block }: HeroProps) {
   },[lenis])
 
   useEffect(() => {
+    setIsMobile(window.matchMedia('(pointer: coarse)').matches)
     setMounted(true)
     useGLTF.preload('/gltf/box.glb')
     useGLTF.preload('/gltf/base.glb')
@@ -862,6 +922,21 @@ export default function Hero({ block }: HeroProps) {
       }
     }    
   )    
+
+
+
+    gsap.fromTo("[data-gsap='hero-cover']",{
+      opacity: 0
+    },{
+      opacity: 0.90,
+      scrollTrigger: {
+        trigger: "[data-gsap='hero-outer']",
+        start: "100% bottom",
+        end: "150% bottom",
+        scrub: true,
+      }
+    }    
+  )    
   })
 
   useGSAP(() => {
@@ -899,19 +974,43 @@ export default function Hero({ block }: HeroProps) {
     })
   }, [])
 
+  // stop webgl render loop outside of hero
+  const outerRef = useRef<HTMLDivElement>(null)
+  const [heroInView, setHeroInView] = useState(true)
+  useEffect(() => {
+    const el = outerRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => setHeroInView(entry.isIntersecting),
+      { rootMargin: '100px 0px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    const clouds = gsap.getTweensOf(
+      "[data-gsap='left-cloud-wrapper-1'],[data-gsap='right-cloud-wrapper-1'],[data-gsap='left-cloud-wrapper-2'],[data-gsap='right-cloud-wrapper-2']"
+    )
+    clouds.forEach(t => (t.repeat() === -1 ? (heroInView ? t.resume() : t.pause()) : null))
+  }, [heroInView])
+
+  //
+
   if (!setHeroMounted) return;
 
   return (
-    <div data-gsap="hero" className="w-full h-[280svh] relative bg-background overflow-x-clip">
-
+    <div ref={outerRef} data-gsap='hero-outer' className="w-full max-h-[280dvh] min-h-[280dvh] relative bg-background overflow-x-clip">
+      <div data-gsap="hero" className="absolute top-0 left-0 w-full max-h-[280dvh] min-h-[280dvh] pointer-events-none" />
+      <div data-gsap='hero-cover' className='absolute top-0 left-0 w-full h-full bg-black z-50 opacity-0 pointer-events-none select-none' />
       {block?.firstText && (
           <HeroTexts firstText={block?.firstText} secondText={block?.secondText} />
       )}
 
       {/* Behind the box (z-0) */}
-      <div className='flex items-center justify-center flex-col gap-[15px] max-h-md:gap-[10px] max-h-sm:gap-[5px] absolute top-0 left-0 w-full h-[70svh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC] '>
+      <div className='flex items-center justify-center flex-col gap-[15px] max-h-md:gap-[10px] max-h-sm:gap-[5px] absolute top-0 left-0 w-full h-[70dvh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC]'>
 
-        <div data-gsap="hero-init" className='flex flex-col md:flex-row gap-[5px] md:gap-[15px] items-center justify-center'>
+        <div data-gsap="hero-init" className='flex flex-col md:flex-row gap-[5px] md:gap-[15px] items-center justify-center min-h-xl:-translate-y-[5dvh]'>
           <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[14px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
           <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[16px] text-background text-center'>
             <span>5.0</span>
@@ -925,70 +1024,46 @@ export default function Hero({ block }: HeroProps) {
         </div>
 
         {block?.heading && (
-          <div className='flex flex-col'>
-          <HeroTitle heading={block?.heading}/>
-        </div>
+          <div className='min-h-xl:-translate-y-[5dvh]'>
+            <HeroTitle heading={block?.heading}/>
+          </div>
         )}
       </div>
 
-      {/* Base Canvas (z-[5]) */}
+      {/* Single canvas: base scene (below) + box scene (above), z-10.
+          mb keeps the document flow identical to the former two stacked sticky canvases. */}
       <div
-        data-canvas="base"
-        className="sticky top-0 w-full h-[100svh] z-[5] pointer-events-none"
+        data-canvas="scene"
+        className="sticky top-0 w-full h-[100dvh] z-10 pointer-events-none mb-[calc(100dvh-100dvh)]"
       >
-        <div className="relative w-full h-[100svh] pointer-events-none">
+        <div className="relative w-full h-[100dvh] pointer-events-none">
           {mounted && (
             <Canvas
               camera={{ fov: 18.18, position: [0, 0, 35] }}
+              dpr={canvasDpr}
+              frameloop={heroInView ? 'always' : 'never'}
+              gl={{ antialias: !isMobile, powerPreference: 'high-performance' }}
               style={{ pointerEvents: 'none' }}
-              className='pointer-events-none w-full h-[100svh]'>
-              <CameraController />
-              {/* <BaseLights /> */}
-              <Suspense fallback={null}>
-                <Hero3DBase />
-              </Suspense>
-            </Canvas>
-          )}
-        </div>
-      </div>
-
-      
-
-      {/* Box Canvas (z-10) */}
-      <div
-        data-canvas="box"
-        className="sticky top-0 w-full h-[100svh] z-10 pointer-events-none -mt-[100vh]"
-      >
-        <div className="relative w-full h-[100svh] pointer-events-none">
-          {mounted && (
-            <Canvas
-              camera={{ fov: 18.18, position: [0, 0, 35] }}
-              style={{ pointerEvents: 'none' }}
-              className='pointer-events-none w-full h-[100svh]'>
-              <CameraController />
-              <Environment preset='forest' environmentIntensity={1} />
-              <DirectionalLightWithControls />
-              <Suspense fallback={null}>
-                <Hero3DBox stickersApplied={stickersApplied} wobbleEnabled={wobbleEnabled} />
-              </Suspense>
+              className='pointer-events-none w-full h-[100dvh]'>
+              <HeroScenes stickersApplied={stickersApplied} wobbleEnabled={wobbleEnabled} onReady={onSceneReady} />
             </Canvas>
           )}
         </div>
       </div>
 
       {/* Left cloud (behind box, z-0) */}
-      <div data-gsap="left-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70svh] z-0 pointer-events-none mix-blend-screen'>
+      <div data-gsap="left-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70dvh] z-0 pointer-events-none mix-blend-screen'>
         <div className='absolute bottom-[-150px] left-1/2 
         w-[1000px] ml-[-700px] md:ml-[-1000px]  lg:ml-[-1500px] lg:w-[1500px] h-fit'>
           <img
             src="/assets/c3.jpg"
             alt=""
             data-gsap="left-cloud-1"
-            className='w-full h-full rotate-[-20deg] pointer-events-none select-none object-contain'
+            className='w-full h-full pointer-events-none select-none object-contain'
           />
         </div>
       </div>
-      <div data-gsap="left-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70svh] z-0 pointer-events-none mix-blend-screen'>
+      <div data-gsap="left-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70dvh] z-0 pointer-events-none mix-blend-screen'>
         <div className='absolute bottom-[-150px] left-1/2 
         ml-[-700px] md:ml-[-1000px] w-[1000px] lg:ml-[-1500px] lg:w-[1500px]  h-fit'>
           <img
@@ -1001,7 +1076,7 @@ export default function Hero({ block }: HeroProps) {
       </div>
 
       {/* Right cloud (z-20) */}
-      <div data-gsap="right-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70svh] z-20 pointer-events-none mix-blend-screen'>
+      <div data-gsap="right-cloud-wrapper-1" className='absolute top-0 left-0 w-full h-[70dvh] z-20 pointer-events-none mix-blend-screen'>
        
         <div className='absolute bottom-[-150px] left-1/2 
         w-[1000px] ml-[0px] md:w-[1000px] md:ml-[155px] lg:ml-[100px] lg:w-[1500px] h-fit'>
@@ -1013,7 +1088,7 @@ export default function Hero({ block }: HeroProps) {
         />
         </div>
       </div>
-      <div data-gsap="right-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70svh] z-20 pointer-events-none mix-blend-screen'>
+      <div data-gsap="right-cloud-wrapper-2" className='absolute top-0 left-0 w-full h-[70dvh] z-20 pointer-events-none mix-blend-screen'>
         <div className='absolute bottom-[-150px] left-1/2 
         w-[1000px] ml-[0px] md:w-[1000px] md:ml-[155px] lg:ml-[100px] lg:w-[1500px] h-fit'>
           <img
@@ -1027,26 +1102,27 @@ export default function Hero({ block }: HeroProps) {
 
       {/* Bottom part */}
       <div data-gsap="hero-init" className='absolute z-[2] pointer-events-auto flex flex-col items-center w-full
-      top-[calc(100svh-170px)]
-      md:top-[calc(100svh-170px)] md:max-h-md:top-[calc(100svh-140px)] md:max-h-sm:top-[calc(100svh-130px)] 
+      top-[calc(100dvh-170px)]
+      md:top-[calc(100dvh-170px)] md:max-h-md:top-[calc(100dvh-140px)] md:max-h-sm:top-[calc(100dvh-130px)] 
       gap-[30px] 
-      md:max-h-md:gap-[30px] md:max-h-sm:gap-[20px]'>
+      md:max-h-md:gap-[30px] md:max-h-sm:gap-[20px]
+      min-h-xl:top-[calc(95dvh-170px)]'>
 
           <div className='flex flex-col md:flex-row gap-[15px] md:gap-[35px] items-center'>
             <p className='text-black font-riforma-bold text-[22px] md:text-[28px] leading-[110%]'>{block?.bottomText}</p>
             {block?.button?.text && block?.button?.href && (
-              <Button className='px-[48px] py-[10px] md:px-[64px] md:py-[13px]' text={block?.button?.text} href={block?.button?.href} />
+              <Button className='px-[17px] py-[10px] md:px-[30px] md:py-[13px]' text={block?.button?.text} href={block?.button?.href} />
             )}
           </div>
 
             {block?.logoMarquee && (
-          <LogoMarquee logos={block?.logoMarquee} />
+          <LogoMarquee direction="right" logos={block?.logoMarquee} />
             )}
       </div>
 
 
       {/* Hero dim */}
-      <div data-gsap="hero-dim" className='opacity-0 w-full h-[50svh] bg-linear-to-b from-[#110F0B]/90 to-[#110F0B00] sticky top-0 left-0 -mt-[100svh] z-50 pointer-events-none select-none' />
+      <div data-gsap="hero-dim" className='opacity-0 w-full h-[50dvh] bg-linear-to-b from-[#110F0B]/90 to-[#110F0B00] sticky top-0 left-0 -mt-[100dvh] z-50 pointer-events-none select-none' />
       
     </div>
   )

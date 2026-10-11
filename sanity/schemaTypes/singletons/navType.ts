@@ -6,29 +6,20 @@ export const navType = defineType({
   type: 'document',
   fields: [
     defineField({
-      name: 'announcement',
-      title: 'Announcement',
-      type: 'string',
-      description: 'Text that displays at the top of the site.',
-      validation: rule =>
-        rule.required().max(120).warning('Keep it short and sweet!'),
-    }),
-    defineField({
-      name: 'leftItems',
-      title: 'Left Items',
+      name: 'dropdowns',
+      title: 'Dropdowns & Links',
       type: 'array',
       of: [
-        { type: 'reference', to: [{ type: 'navLink' }] },
         { type: 'navDropdown' },
+        { type: 'reference', to: [{ type: 'navLink' }] },
       ],
     }),
     defineField({
-      name: 'rightItems',
-      title: 'Right Items',
+      name: 'buttons',
+      title: 'Buttons',
       type: 'array',
       of: [
-        { type: 'reference', to: [{ type: 'navLink' }] },
-        { type: 'navDropdown' },
+        { type: 'navButton' },
       ],
     }),
   ],

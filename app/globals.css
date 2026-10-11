@@ -11,27 +11,86 @@ body {
   overflow-x: hidden;
 }
 
-/* ::-webkit-scrollbar {
-  display: none;
-} */
+/* ===== CUSTOM SCROLLBAR ===== */
+html {
+  scrollbar-width:auto;
+  scrollbar-color: #FD4015 ;
+}
 
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FDF6E2;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #FD4015;
+  border-radius: 9999px;
+  border: 1.5px solid #FDF6E2;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #e0320a;
+}
 
 @theme {
   /* ===== COLORS ===== */
   --color-background: #FDF6E2;
+  --color-darkbg: #EBE4D1;
   --color-brand-orange: #FD4015;
+  --color-brand-blue: #0095EC;
+  --color-black: #110F0B;
 
   /* ===== BREAKPOINTS ===== */
   --breakpoint-xs: 480px;
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
+  --breakpoint-lg: 1140px;
   --breakpoint-xl: 1440px;
 
   /* ===== FONTS ===== */
   --font-riforma-bold: var(--font-riforma-bold);
   --font-riforma-regular: var(--font-riforma-regular);
   --font-riforma-medium: var(--font-riforma-medium);
+
+  /* ===== FONT SIZES - DESKTOP ===== */
+  --text-desktop-h1: 84px;
+  --text-desktop-h2: 66px;
+  --text-desktop-h3: 54px;
+  --text-desktop-h4: 43px;
+  --text-desktop-h5: 34px;
+  --text-desktop-h6: 28px;
+  --text-desktop-p1: 22px;
+  --text-desktop-p2: 18px;
+  --text-desktop-subtitle: 16px;
+  --text-desktop-caption: 12px;
+
+  /* ===== FONT SIZES - TABLET ===== */
+  --text-tablet-h1: 67px;
+  --text-tablet-h2: 54px;
+  --text-tablet-h3: 43px;
+  --text-tablet-h4: 34px;
+  --text-tablet-h5: 28px;
+  --text-tablet-h6: 22px;
+  --text-tablet-p1: 22px;
+  --text-tablet-p2: 18px;
+  --text-tablet-subtitle: 16px;
+  --text-tablet-caption: 12px;
+
+  /* ===== FONT SIZES - MOBILE ===== */
+  --text-mobile-h1: 43px;
+  --text-mobile-h2: 28px;
+  --text-mobile-h3: 26px;
+  --text-mobile-h4: 22px;
+  --text-mobile-h5: 18px;
+  --text-mobile-h6: 16px;
+  --text-mobile-p1: 22px;
+  --text-mobile-p2: 18px;
+  --text-mobile-subtitle: 14px;
+  --text-mobile-caption: 12px;
 }
 
 /* ===== HEIGHT BREAKPOINTS ===== */
@@ -39,3 +98,24 @@ body {
 @custom-variant max-h-lg (@media (max-height: 920px));
 @custom-variant max-h-md (@media (max-height: 800px));
 @custom-variant max-h-sm (@media (max-height: 670px));
+@custom-variant min-h-xl (@media (min-height: 1100px));
+
+/* ===== PHONE INPUT OVERRIDES ===== */
+.custom-phone-input {
+  @apply flex items-center focus-within:outline focus-within:outline-2;
+}
+.custom-phone-input .PhoneInputCountry {
+  @apply flex items-center gap-[10px] pr-[15px];
+}
+.custom-phone-input .PhoneInputInput {
+  @apply bg-transparent outline-none flex-1 min-w-0 font-[inherit] tracking-[inherit] text-[length:inherit] text-black placeholder-black/40 border-none;
+}
+.custom-phone-input .PhoneInputCountrySelectArrow {
+  @apply w-[10px] h-[10px] -translate-y-[2px] border-black border-r-[2px] border-b-[2px];
+}
+.custom-phone-input .PhoneInputCountryIcon {
+  @apply w-[20px] h-[14px] sm:w-[28px] sm:h-[20px];
+}
+.custom-phone-input .PhoneInputCountryIconImg {
+  @apply w-full h-full object-cover;
+}

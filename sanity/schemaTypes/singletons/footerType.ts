@@ -5,30 +5,22 @@ export const footerType = defineType({
   title: 'Footer',
   type: 'document',
   fields: [
-
     defineField({
-      name: 'footerImage',
-      title: 'Footer Image',
-      type: 'image',
-      fields: [
-        defineField({
-          name: 'alt',
-          title: 'Alt Text',
-          type: 'string',
-        }),
-      ],
+      name: 'columns',
+      title: 'Footer Columns',
+      type: 'array',
+      of: [{ type: 'footerColumn' }],
     }),
     defineField({
-      name: 'footerLogo',
-      title: 'Footer Logo',
-      type: 'image',
-      fields: [
-        defineField({
-          name: 'alt',
-          title: 'Alt Text',
-          type: 'string',
-        }),
-      ],
+      name: 'cookieText',
+      title: 'Cookie Text',
+      type: 'text',
+    }),
+    defineField({
+      name: 'bottomLinks',
+      title: 'Bottom Links',
+      type: 'array',
+      of: [{ type: 'reference', to: [{ type: 'navLink' }] }],
     }),
     defineField({
       name: 'copyrightText',

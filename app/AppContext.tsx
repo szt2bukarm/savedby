@@ -9,6 +9,12 @@ type AppContextType = {
   toggleNav: () => void
   isAppLoaded: boolean
   setIsAppLoaded: (loaded: boolean) => void
+  isSceneReady: boolean
+  setIsSceneReady: (ready: boolean) => void
+  navColor: string
+  setNavColor: (color: string) => void
+  navHidden: boolean
+  setNavHidden: (hidden: boolean) => void
   isMobile: boolean
   isDraftMode: boolean
 }
@@ -30,6 +36,9 @@ export function AppProvider({
 }) {
   const [isNavOpen, setIsNavOpen] = useState(false)
   const [isAppLoaded, setIsAppLoaded] = useState(isDraftMode)
+  const [isSceneReady, setIsSceneReady] = useState(false)
+  const [navColor,setNavColor] = useState("light");
+  const [navHidden, setNavHidden] = useState(false);
   const [isMobile, setIsMobile] = useState(false)
   const pathname = usePathname()
 
@@ -79,8 +88,14 @@ export function AppProvider({
         toggleNav,
         isAppLoaded,
         setIsAppLoaded,
+        isSceneReady,
+        setIsSceneReady,
         isMobile,
         isDraftMode,
+        navColor,
+        setNavColor,
+        navHidden,
+        setNavHidden
       }}>
       {children}
     </AppContext.Provider>

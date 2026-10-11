@@ -4,11 +4,14 @@ interface ButtonProps {
     href: string;
     className?: string;
     onClick?: () => void;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+    dataGsap?: string;
 }
 
-export default function Button({ text, href, className = '', onClick }: ButtonProps) {
+export default function Button({ text, href, className = '', onClick, onMouseEnter, onMouseLeave, dataGsap }: ButtonProps) {
     return (
-        <button className={`font-riforma-regular bg-brand-orange border-[3px] border-background text-background tracking-[-3%] text-center hover:bg-black cursor-pointer transition-colors ${className}`} onClick={onClick}>
+        <button data-gsap={dataGsap} className={`font-riforma-regular bg-brand-orange border-[3px] rounded-[10px] border-background text-background tracking-[-3%] text-center hover:bg-[#ff7252] cursor-pointer transition-colors w-fit ${className}`} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
             {text}
         </button>
     )

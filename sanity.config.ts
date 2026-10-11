@@ -55,6 +55,7 @@ export default defineConfig({
                 S.document().schemaType('seoSettings').documentId('seoSettings')
               ),
             S.documentTypeListItem('navLink').title('Navigation Links'),
+            S.documentTypeListItem('caseStudy').title('Case Studies'),
           ]),
     }),
     presentationTool({

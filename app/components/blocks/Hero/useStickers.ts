@@ -60,8 +60,21 @@ export function useStickers({ scene, wobbleEnabled = true }: { scene: THREE.Grou
           child.renderOrder = 10
           const geom = child.geometry
           if (geom && geom.attributes.position && geom.attributes.normal) {
-            const origPositions = Float32Array.from(geom.attributes.position.array)
-            const origNormals = Float32Array.from(geom.attributes.normal.array)
+            // The GLB (and its geometry) is cached by useGLTF and survives remounts / Fast
+            // Refresh while the curl animation rewrites the vertices in place. Capture the
+            // pristine geometry only once and restore it, otherwise a remount would record a
+            // half-curled sticker as its "original" and it could never fully apply again.
+            const cache: { positions: Float32Array; normals: Float32Array } =
+              (geom.userData.stickerOriginal ??= {
+                positions: Float32Array.from(geom.attributes.position.array),
+                normals: Float32Array.from(geom.attributes.normal.array),
+              })
+            ;(geom.attributes.position.array as Float32Array).set(cache.positions)
+            ;(geom.attributes.normal.array as Float32Array).set(cache.normals)
+            geom.attributes.position.needsUpdate = true
+            geom.attributes.normal.needsUpdate = true
+            const origPositions = cache.positions
+            const origNormals = cache.normals
 
             let minU = Infinity
             let maxU = -Infinity
@@ -101,6 +114,10 @@ export function useStickers({ scene, wobbleEnabled = true }: { scene: THREE.Grou
               .applyQuaternion(child.quaternion)
               .normalize()
 
+            // same for the mesh position, which the curl animation offsets along the normal
+            const basePos: THREE.Vector3 = (child.userData.stickerBasePos ??= child.position.clone())
+            child.position.copy(basePos)
+
             items.push({
               name: child.name,
               mesh: child,
@@ -108,7 +125,7 @@ export function useStickers({ scene, wobbleEnabled = true }: { scene: THREE.Grou
               origNormals,
               minU,
               maxU,
-              basePos: child.position.clone(),
+              basePos,
               outwardNormal,
               progress: 0,
               opacity: 0,

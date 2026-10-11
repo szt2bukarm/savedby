@@ -12,6 +12,14 @@ const IMAGE_ASSET = groq`{
   }
 }`
 
+const FILE_ASSET = groq`{
+  ...,
+  "asset": {
+    "_ref": asset._ref,
+    "url": asset->url
+  }
+}`
+
 // ─── Pages ──────────────────────────────────────────────────────────
 
 export const PAGE_QUERY = groq`
@@ -22,6 +30,16 @@ export const PAGE_QUERY = groq`
     blocks[] {
       _type,
       _key,
+      disabled,
+      spacing {
+        type,
+        top,
+        bottom,
+        tabletTop,
+        tabletBottom,
+        mobileTop,
+        mobileBottom
+      },
       _type == "heroBlock" => {
         heading,
         bottomText,
@@ -36,6 +54,136 @@ export const PAGE_QUERY = groq`
         },
         firstText,
         secondText,
+      },
+      _type == "stickyTextBlock" => {
+        items[] {
+          _key,
+          text,
+          boxIcon
+        }
+      },
+      _type == "numberedCardsBlock" => {
+        cards[] {
+          _key,
+          number,
+          text,
+          color
+        }
+      },
+      _type == "customerStoryBlock" => {
+        title,
+        "brandLogo": brandLogo ${IMAGE_ASSET},
+        "productImage": productImage ${IMAGE_ASSET},
+        "slides": [
+          slide1 {
+            _key,
+            heading,
+            text,
+            backgroundColor,
+            graphicBackground,
+            mobileBackgroundColor
+          },
+          slide2 {
+            _key,
+            heading,
+            text,
+            backgroundColor,
+            graphicBackground,
+            mobileBackgroundColor
+          },
+          slide3 {
+            _key,
+            heading,
+            text,
+            backgroundColor,
+            graphicBackground,
+            mobileBackgroundColor
+          }
+        ]
+      },
+      _type == "featureCardsBlock" => {
+        heading,
+        cards[] {
+          _key,
+          title,
+          text,
+          backgroundColor,
+          mediaType,
+          number,
+          riveArtboard
+        }
+      },
+      _type == "ctaBlock" => {
+        text,
+        button {
+          text,
+          href
+        },
+        orientation,
+        textWidth
+      },
+      _type == "ratingCardsBlock" => {
+        heading,
+        ratings[] {
+          _key,
+          quote,
+          name
+        }
+      },
+      _type == "merchantReviewSlideBlock" => {
+        topText,
+        ratings[] {
+          _key,
+          quote,
+          name,
+          title
+        }
+      },
+      _type == "logoCarouselBlock" => {
+        title,
+        logos[] {
+          _key,
+          alt,
+          "image": image ${IMAGE_ASSET}
+        }
+      },
+      _type == "savedbyComparisonBlock" => {
+        heading,
+        subtitle,
+        savedbyOffers,
+        competitionOffers,
+        pricingText,
+        price
+      },
+      _type == "navColorChangeTriggerBlock" => {
+        from,
+        to
+      },
+      _type == "navHideTriggerBlock" => {
+        from,
+        to
+      },
+      _type == "parallaxDividerBlock" => {
+      },
+      _type == "curveBlock" => {
+        color
+      },
+      _type == "caseStudySliderBlock" => {
+        heading,
+        caseStudies[] {
+          _key,
+          "caseStudy": caseStudy->{
+            title
+          },
+          companyName,
+          textUnder,
+          "image": image ${IMAGE_ASSET}
+        }
+      },
+      _type == "contactFormBlock" => {
+        variant,
+        centerText,
+        bottomText
       },
     },
     metaTitle,
@@ -62,11 +210,32 @@ const LINK_FIELDS = groq`
 
 // ─── Singletons ─────────────────────────────────────────────────────
 
+export const FOOTER_QUERY = groq`
+  *[_type == "footer"][0] {
+    _id,
+    copyrightText,
+    cookieText,
+    columns[] {
+      _key,
+      title,
+      links[]-> {
+        _id,
+        text,
+        href
+      }
+    },
+    bottomLinks[]-> {
+      _id,
+      text,
+      href
+    }
+  }
+`
+
 export const NAV_QUERY = groq`
   *[_type == "nav"][0] {
     _id,
-    announcement,
-    leftItems[] {
+    dropdowns[] {
       _type,
       _key,
       _type == "reference" => @-> {
@@ -79,18 +248,12 @@ export const NAV_QUERY = groq`
         }
       }
     },
-    rightItems[] {
+    buttons[] {
       _type,
       _key,
-      _type == "reference" => @-> {
-        ${LINK_FIELDS}
-      },
-      _type == "navDropdown" => {
-        text,
-        links[]-> {
-          ${LINK_FIELDS}
-        }
-      }
+      text,
+      href,
+      variant
     }
   }
 `
@@ -113,14 +276,7 @@ export const MOBILE_NAV_QUERY = groq`
   }
 `
 
-export const FOOTER_QUERY = groq`
-  *[_type == "footer"][0] {
-    _id,
-    copyrightText,
-    "footerImage": footerImage ${IMAGE_ASSET},
-    "footerLogo": footerLogo ${IMAGE_ASSET}
-  }
-`
+
 
 export const SEO_QUERY = groq`
   *[_type == "seoSettings"][0] {

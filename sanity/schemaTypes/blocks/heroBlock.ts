@@ -1,11 +1,19 @@
 import { defineField, defineType } from 'sanity'
 import TextAreaInput from '../../components/TextAreaInput'
+import { SpacingFields } from '../objects/spacingType'
 
 export const heroBlock = defineType({
   name: 'heroBlock',
   title: 'Hero',
   type: 'object',
   fields: [
+    defineField({
+      name: 'disabled',
+      title: 'Disabled (Do not render)',
+      type: 'boolean',
+      initialValue: false,
+    }),
+
     defineField({
       name: 'heading',
       title: 'Heading',
@@ -52,7 +60,8 @@ export const heroBlock = defineType({
         components: {
             input: TextAreaInput,
         },
-    })
+    }),
+    SpacingFields
   ],
   preview: {
     select: {
