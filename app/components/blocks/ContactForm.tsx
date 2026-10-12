@@ -160,6 +160,23 @@ export default function ContactForm({ block }: ContactFormBlockProps) {
       }
     })
 
+    gsap.set("[data-gsap='contact-form-bottom-text']", {
+      "--gradient-size": "0%",
+      "--gradient-position": "-15% -15%",
+      "--gradient-color" : "#FD4015",
+    })
+    gsap.to("[data-gsap='contact-form-bottom-text']", {
+      "--gradient-size": "120%",
+      "--gradient-color": "#110F0B",
+      delay: 0.1,
+      duration: 0.5,
+      scrollTrigger: {
+        trigger: wrapperRef.current,
+        start: "10% 50%",
+        invalidateOnRefresh: true,
+      }
+    })
+
     gsap.set("[data-gsap='contact-form']", {
       opacity: 0,
       y: 100,
@@ -195,7 +212,7 @@ export default function ContactForm({ block }: ContactFormBlockProps) {
               )}
               
               {block?.bottomText && (
-                <PortableText value={block.bottomText} components={bottomTextComponents} />
+                <GradientRevealText dataGsap='contact-form-bottom-text' value={block.bottomText} components={bottomTextComponents} />
               )}
             </div>
             

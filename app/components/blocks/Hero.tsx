@@ -1010,7 +1010,7 @@ export default function Hero({ block }: HeroProps) {
       {/* Behind the box (z-0) */}
       <div className='flex items-center justify-center flex-col gap-[15px] max-h-md:gap-[10px] max-h-sm:gap-[5px] absolute top-0 left-0 w-full h-[70dvh] z-0 pointer-events-none bg-linear-to-t from-[#FDF6E2] to-[#0095EC]'>
 
-        <div data-gsap="hero-init" className='flex flex-col md:flex-row gap-[5px] md:gap-[15px] items-center justify-center min-h-xl:-translate-y-[5dvh]'>
+        <div data-gsap="hero-init" className='flex flex-col md:flex-row gap-[5px] md:gap-[15px] items-center justify-center min-h-xl:-translate-y-[6dvh]'>
           <p className='font-riforma-bold tracking-[3px] leading-[110%] text-[14px] text-background text-center'>RATED 5 STARS ON SHOPIFY</p>
           <p className='flex items-center justify-center gap-[6px] font-riforma-regular leading-[110%] text-[16px] text-background text-center'>
             <span>5.0</span>
@@ -1024,7 +1024,7 @@ export default function Hero({ block }: HeroProps) {
         </div>
 
         {block?.heading && (
-          <div className='min-h-xl:-translate-y-[5dvh]'>
+          <div className='min-h-xl:-translate-y-[6dvh]'>
             <HeroTitle heading={block?.heading}/>
           </div>
         )}
@@ -1102,11 +1102,11 @@ export default function Hero({ block }: HeroProps) {
 
       {/* Bottom part */}
       <div data-gsap="hero-init" className='absolute z-[2] pointer-events-auto flex flex-col items-center w-full
-      top-[calc(100dvh-170px)]
-      md:top-[calc(100dvh-170px)] md:max-h-md:top-[calc(100dvh-140px)] md:max-h-sm:top-[calc(100dvh-130px)] 
-      gap-[30px] 
-      md:max-h-md:gap-[30px] md:max-h-sm:gap-[20px]
-      min-h-xl:top-[calc(95dvh-170px)]'>
+      top-[calc(100dvh-180px)]
+      md:top-[calc(100dvh-220px)] md:max-h-lg:top-[calc(100dvh-180px)] md:max-h-md:top-[calc(100dvh-140px)] md:max-h-sm:top-[calc(100dvh-130px)] 
+      gap-[40px] md:gap-[50px] 
+      md:max-h-md:gap-[40px] md:max-h-sm:gap-[20px]
+      min-h-xl:top-[calc(95dvh-180px)]'>
 
           <div className='flex flex-col md:flex-row gap-[15px] md:gap-[35px] items-center'>
             <p className='text-black font-riforma-bold text-[22px] md:text-[28px] leading-[110%]'>{block?.bottomText}</p>

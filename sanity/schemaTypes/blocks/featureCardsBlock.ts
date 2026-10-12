@@ -50,7 +50,7 @@ export const featureCardsBlock = defineType({
                 list: [
                   { title: 'Blue', value: '#0095EC,#00A1FF' },
                   { title: 'Orange', value: '#FD4015,#FF6948' },
-                  { title: 'Brown', value: '#AB5741,#FDF6E2' },
+                  { title: 'Brown', value: '#AB5741,#FEFFEE' },
                 ],
                 layout: 'radio',
               },

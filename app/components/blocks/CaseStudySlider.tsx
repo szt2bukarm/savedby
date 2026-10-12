@@ -110,7 +110,7 @@ export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
         >
           {block?.caseStudies?.map((item, i) => (
             <SwiperSlide key={item._key} className="!w-auto">
-              <div data-gsap="case-card" className='w-[240px] sm:w-[320px] lg:w-[450px] flex flex-col bg-darkbg rounded-[10px] overflow-hidden transition-[filter] duration-300 group-hover:brightness-75 hover:!brightness-100 cursor-pointer active:cursor-grabbing'>
+              <div data-gsap="case-card" className='group/card w-[240px] sm:w-[320px] lg:w-[450px] flex flex-col bg-darkbg rounded-[10px] overflow-hidden transition-[filter,scale] duration-300 group-hover:brightness-85 hover:!brightness-100 hover:scale-[0.98]! cursor-pointer active:cursor-grabbing'>
                 <SanityImage 
                   image={item.image} 
                   alt={item.image?.alt || item.companyName || ''} 
@@ -128,7 +128,10 @@ export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
                           : ''}
                     </p>
                   </div>
-                  <Arrow className='ml-auto w-[40px] lg:w-[60px]'/>
+                  <div className='ml-auto relative  min-h-[40px] w-[40px] lg:w-[60px] lg:min-h-[50px] overflow-hidden'>
+                    <Arrow className='absolute bottom-0 right-0 w-[40px] lg:w-[60px] duration-300 group-hover/card:translate-x-full'/>
+                    <Arrow className='absolute bottom-0 right-0 w-[40px] lg:w-[60px] duration-300 -translate-x-full group-hover/card:translate-x-0'/>
+                  </div>
                 </div>
               </div>
             </SwiperSlide>

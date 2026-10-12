@@ -38,7 +38,7 @@ const Box = () => {
 
 const REVIEW_DURATION_MS = 5000
 
-const ReviewDot = ({ active, onClick, sizeClass, animate }: { active: boolean, onClick: () => void, sizeClass: string, animate: boolean }) => {
+const ReviewDot = ({ active, onClick, sizeClass, insetClass, animate }: { active: boolean, onClick: () => void, sizeClass: string, insetClass: string, animate: boolean }) => {
   const [runId, setRunId] = useState(0);
   const [prevActive, setPrevActive] = useState(active);
   if (prevActive !== active) {
@@ -53,9 +53,9 @@ const ReviewDot = ({ active, onClick, sizeClass, animate }: { active: boolean, o
         aria-label='Show review'
         aria-current={active}
         onClick={onClick}
-        className={`absolute inset-0 block cursor-pointer rounded-full transition-[background-color,transform] duration-250 hover:scale-110 active:scale-95 translate-y-[0.2px] sm:-translate-y-[0px] ${active ? 'bg-brand-orange' : 'bg-[#EBE4D1]'}`}
+        className={`absolute inset-0 block cursor-pointer rounded-full transition-[background-color,transform] duration-250 hover:scale-110 active:scale-95  ${active ? 'bg-brand-orange' : 'bg-[#EBE4D1]'}`}
       />
-      <div className='absolute -inset-[35%] pointer-events-none'>
+      <div className={`absolute pointer-events-none ${insetClass}`}>
       <svg className='block w-full h-full -rotate-90' viewBox='0 0 100 100' fill='none'>
         {animate && (
           <circle
@@ -273,7 +273,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
     })
     gsap.to([nameRef.current,titleRef.current], {
       opacity: 0,
-      duration: 0.4
+      duration: 0.2
     })
     setTimeout(() => {
       setDisplayReview(ratings[index])
@@ -293,7 +293,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
     })
     gsap.to([nameRef.current,titleRef.current], {
       opacity: 1,
-      duration: 0.4,
+      duration: 0.2,
       delay: 0.5
     })
   }
@@ -329,11 +329,12 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
             animate={(block?.ratings?.length ?? 0) > 1}
             onClick={() => changeReview(index)}
             sizeClass='w-[20px] h-[20px]'
+            insetClass='-inset-[7px]'
           />
         ))}
       </div>
 
-      <div className='flex flex-col justify-between min-h-[450px] lg:min-h-0 lg:h-full'>
+      <div className='flex flex-col justify-between gap-[50px] sm:gap-[100px] lg:h-full'>
 
         <p className='text-mobile-p2 sm:text-desktop-h5 text-black font-riforma-regular tracking-[-4%]'>{block?.topText}</p>
 
@@ -349,12 +350,13 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
               animate={(block?.ratings?.length ?? 0) > 1}
               onClick={() => changeReview(index)}
               sizeClass='w-[12px] h-[12px] sm:w-[20px] sm:h-[20px]'
+              insetClass='-inset-[4px] sm:-inset-[7px]'
             />
           ))}
           </div>
         </div>
 
-        <div className='flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-center justify-center lg:justify-start'>
+        <div className='flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-center justify-center lg:justify-start mt-[20px]'>
           <SavedByLogo className='w-[146px] h-[46px]' color='#0095EC' />
           <div className='flex flex-col gap-[5px] items-center sm:items-start'>
             <p className='text-desktop-p2 font-riforma-bold leading-[110%] tracking-[-3%]'>IS RATED 5 STARTS ON SHOPIFY</p>

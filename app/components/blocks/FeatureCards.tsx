@@ -64,7 +64,7 @@ const CardRive = ({ artboard }: { artboard: string }) => {
     }
   }, [fontProp, fontBoldProp])
 
-  return <RiveComponent className="absolute inset-0 w-full h-full object-contain z-10" />
+  return <RiveComponent data-part="rive" className="absolute inset-0 w-full h-full object-contain z-10" />
 }
 
 export default function FeatureCards({ block }: FeatureCardsBlockProps) {
@@ -81,7 +81,6 @@ export default function FeatureCards({ block }: FeatureCardsBlockProps) {
       if (prev && prev.element !== card?.element) {
         gsap.to([prev.parts.title, prev.parts.text, prev.parts.number].filter(Boolean), {
           opacity: 0.4,
-          y: 0,
           scale: 1,
           duration: 0.35,
           ease: 'power2.out',
@@ -98,15 +97,24 @@ export default function FeatureCards({ block }: FeatureCardsBlockProps) {
             overwrite: true,
           })
         }
+        if (prev.parts.rive) {
+          gsap.to(prev.parts.rive, {
+            scale: 1,
+            filter: "brightness(1)",
+            duration: 0.2,
+            ease: 'power2.out',
+            overwrite: true,
+          })
+        }
       }
 
       // 2. animate the new current card
       if (card) {
-        const { title, text, number, circle } = card.parts
+        const { title, text, number, circle, rive } = card.parts
         const tl = gsap.timeline({ defaults: { ease: 'power3.out', overwrite: 'auto' } })
         
-        if (title) tl.to(title, { opacity: 1, y: -6, duration: 0.45 }, 0)
-        if (text) tl.to(text, { opacity: 1, y: -6, duration: 0.45 }, '<0.05')
+        if (title) tl.to(title, { opacity: 1, duration: 0.45 }, 0)
+        if (text) tl.to(text, { opacity: 1, duration: 0.45 }, 0)
         
         if (number) {
           const endStr = number.getAttribute('data-val') || number.innerText || '0'
@@ -119,6 +127,14 @@ export default function FeatureCards({ block }: FeatureCardsBlockProps) {
             scale: 0.95,
             xPercent: -50,
             yPercent: -50,
+            duration: 0.4,
+            filter: "brightness(1.05)",
+            ease: "back.out(2)",
+          }, 0)
+        }
+        if (rive) {
+          tl.to(rive, {
+            scale: 0.95,
             duration: 0.4,
             filter: "brightness(1.05)",
             ease: "back.out(2)",

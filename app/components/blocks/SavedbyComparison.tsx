@@ -9,9 +9,9 @@ import { CURVE_CLIP, CURVE_VARS } from '@/app/utils/curve'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 
-const Star = ({dataGsap}:{dataGsap:string}) => (
+const Star = ({dataGsap,fill}:{dataGsap:string,fill:string}) => (
   <svg data-gsap={dataGsap} className='opacity-0' xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 27 26" fill="none">
-    <path d="M12.5651 0.484389C12.9537 -0.161431 13.89 -0.16143 14.2787 0.48439L18.1408 6.90194C18.2804 7.13395 18.5082 7.29942 18.772 7.36051L26.0689 9.0505C26.8032 9.22056 27.0926 10.111 26.5985 10.6802L21.6885 16.3365C21.511 16.541 21.424 16.8087 21.4474 17.0785L22.095 24.5405C22.1602 25.2914 21.4027 25.8418 20.7086 25.5477L13.812 22.6259C13.5626 22.5203 13.2811 22.5203 13.0318 22.6259L6.13511 25.5477C5.44107 25.8418 4.6836 25.2914 4.74877 24.5405L5.39637 17.0785C5.41978 16.8087 5.33279 16.541 5.15528 16.3365L0.245297 10.6802C-0.248811 10.111 0.0405206 9.22056 0.774835 9.05049L8.07175 7.36051C8.33555 7.29942 8.5633 7.13395 8.70293 6.90194L12.5651 0.484389Z" fill="#FD4015" />
+    <path d="M12.5651 0.484389C12.9537 -0.161431 13.89 -0.16143 14.2787 0.48439L18.1408 6.90194C18.2804 7.13395 18.5082 7.29942 18.772 7.36051L26.0689 9.0505C26.8032 9.22056 27.0926 10.111 26.5985 10.6802L21.6885 16.3365C21.511 16.541 21.424 16.8087 21.4474 17.0785L22.095 24.5405C22.1602 25.2914 21.4027 25.8418 20.7086 25.5477L13.812 22.6259C13.5626 22.5203 13.2811 22.5203 13.0318 22.6259L6.13511 25.5477C5.44107 25.8418 4.6836 25.2914 4.74877 24.5405L5.39637 17.0785C5.41978 16.8087 5.33279 16.541 5.15528 16.3365L0.245297 10.6802C-0.248811 10.111 0.0405206 9.22056 0.774835 9.05049L8.07175 7.36051C8.33555 7.29942 8.5633 7.13395 8.70293 6.90194L12.5651 0.484389Z" fill={fill} />
   </svg>
 )
 
@@ -171,7 +171,7 @@ export default function SavedbyComparison({ block, nextBlockType }: SavedbyCompa
               <div className='flex flex-col'>
                 {block?.savedbyOffers?.map((offer, i) => (
                   <div key={i} className='flex gap-[10px] items-center'>
-                    <Star dataGsap={`savedby-comp-star`} />
+                    <Star dataGsap={`savedby-comp-star`} fill='#FD4015'/>
                     <p data-gsap='savedby-comp-offer' className='text-mobile-p2 sm:text-desktop-p1 font-riforma-regular text-black leading-[100%] tracking-[-2%] opacity-0'>{offer}</p>
                   </div>
                 ))}
@@ -188,7 +188,7 @@ export default function SavedbyComparison({ block, nextBlockType }: SavedbyCompa
               <div className='flex flex-col'>
                 {block?.competitionOffers?.map((offer, i) => (
                   <div key={i} className='flex gap-[10px] items-center'>
-                    <Star dataGsap='comp-comp-star' />
+                    <Star dataGsap='comp-comp-star' fill='#000000'/>
                     <p data-gsap='comp-comp-offer' className='text-mobile-p2 sm:text-desktop-p1 font-riforma-regular text-black leading-[100%] tracking-[-2%] opacity-0'>{offer}</p>
                   </div>
                 ))}
