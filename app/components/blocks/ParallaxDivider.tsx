@@ -18,7 +18,6 @@ export default function ParallaxDivider() {
         trigger: ref.current,
         start: "top 140%",
         end: "top 50%",
-        markers: true,
         scrub: true,
       }
     })
