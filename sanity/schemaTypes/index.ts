@@ -22,7 +22,6 @@ import { merchantReviewSlideBlock } from './blocks/merchantReviewSlideBlock'
 import { logoCarouselBlock } from './blocks/logoCarouselBlock'
 import { savedbyComparisonBlock } from './blocks/savedbyComparisonBlock'
 import { navColorChangeTriggerBlock } from './blocks/navColorChangeTriggerBlock'
-import { navHideTriggerBlock } from './blocks/navHideTriggerBlock'
 import { parallaxDividerBlock } from './blocks/parallaxDividerBlock'
 import { caseStudySliderBlock } from './blocks/caseStudySliderBlock'
 import { contactFormBlock } from './blocks/contactFormBlock'
@@ -62,7 +61,6 @@ export const schemaTypes = [
   logoCarouselBlock,
   savedbyComparisonBlock,
   navColorChangeTriggerBlock,
-  navHideTriggerBlock,
   parallaxDividerBlock,
   caseStudySliderBlock,
   contactFormBlock,

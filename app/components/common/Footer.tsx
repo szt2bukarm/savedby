@@ -4,6 +4,13 @@ import SavedByLogo from './SavedByLogo'
 import Box from './Box'
 import { CURVE_CLIP, CURVE_VARS } from '@/app/utils/curve'
 import { Link } from 'next-view-transitions'
+import { useRef } from 'react'
+import { useAppContext } from '@/app/AppContext'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+gsap.registerPlugin(ScrollTrigger)
 
 interface FooterProps {
   data?: FooterData | null
@@ -18,9 +25,29 @@ const DayJob = () => {
 }
 
 export default function Footer({ data }: FooterProps) {
+  const ref = useRef<HTMLElement>(null)
+  const { setNavHidden } = useAppContext()
+
+  useGSAP(() => {
+    if (!ref.current) return
+    const st = ScrollTrigger.create({
+      trigger: ref.current,
+      start: 'top-=400 5%',
+      end: 'max',
+      onEnter: () => setNavHidden(true),
+      onLeaveBack: () => setNavHidden(false),
+      onRefresh: (self) => setNavHidden(self.progress > 0),
+    })
+    return () => {
+      st.kill()
+      setNavHidden(false)
+    }
+  }, { dependencies: [data], scope: ref })
+
   if (!data) return null
   return (
     <footer
+      ref={ref}
       style={{ clipPath: CURVE_CLIP }}
       className={`${CURVE_VARS} mt-[-100px] overflow-x-clip w-full bg-brand-blue relative overflow-hidden sm:min-h-[1000px] lg:min-h-[800px] flex flex-col justify-between pt-[120px] sm:pt-[180px] pb-[60px] px-[20px] sm:px-[40px] lg:px-[60px] xl:px-[110px]`}>
 

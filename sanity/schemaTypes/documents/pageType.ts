@@ -34,7 +34,6 @@ export const pageType = defineType({
         { type: 'logoCarouselBlock' },
         { type: 'savedbyComparisonBlock' },
         { type: 'navColorChangeTriggerBlock' },
-        { type: 'navHideTriggerBlock' },
         { type: 'parallaxDividerBlock' },
         { type: 'caseStudySliderBlock' },
         { type: 'contactFormBlock' },

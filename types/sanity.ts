@@ -295,18 +295,6 @@ export interface NavColorChangeTriggerBlockProps {
   block?: NavColorChangeTriggerBlockData
 }
 
-export interface NavHideTriggerBlockData {
-  _type: 'navHideTriggerBlock'
-  _key: string
-  disabled?: boolean
-  from?: 'visible' | 'hidden'
-  to?: 'visible' | 'hidden'
-}
-
-export interface NavHideTriggerBlockProps {
-  block?: NavHideTriggerBlockData
-}
-
 export interface CaseStudyItemData {
   _key?: string
   caseStudy?: any
@@ -366,7 +354,6 @@ export type PageBlock =
   | LogoCarouselBlockData
   | SavedbyComparisonBlockData
   | NavColorChangeTriggerBlockData
-  | NavHideTriggerBlockData
   | CaseStudySliderBlockData
   | ContactFormBlockData
   | CurveBlockData

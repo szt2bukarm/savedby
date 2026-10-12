@@ -159,10 +159,6 @@ export const PAGE_QUERY = groq`
         from,
         to
       },
-      _type == "navHideTriggerBlock" => {
-        from,
-        to
-      },
       _type == "parallaxDividerBlock" => {
       },
       _type == "curveBlock" => {

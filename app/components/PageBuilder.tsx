@@ -10,7 +10,6 @@ import MerchantReviewSlide from './blocks/MerchantReviewSlide'
 import LogoCarousel from './blocks/LogoCarousel'
 import SavedbyComparison from './blocks/SavedbyComparison'
 import NavColorChangeTrigger from './blocks/NavColorChangeTrigger'
-import NavHideTrigger from './blocks/NavHideTrigger'
 import ParallaxDivider from './blocks/ParallaxDivider'
 import CaseStudySlider from './blocks/CaseStudySlider'
 import ContactForm from './blocks/ContactForm'
@@ -27,7 +26,6 @@ const components: Record<string, React.ComponentType<any>> = {
   logoCarouselBlock: LogoCarousel,
   savedbyComparisonBlock: SavedbyComparison,
   navColorChangeTriggerBlock: NavColorChangeTrigger,
-  navHideTriggerBlock: NavHideTrigger,
   parallaxDividerBlock: ParallaxDivider,
   caseStudySliderBlock: CaseStudySlider,
   contactFormBlock: ContactForm,
