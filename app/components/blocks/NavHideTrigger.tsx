@@ -20,7 +20,7 @@ export default function NavHideTrigger({ block }: NavHideTriggerBlockProps) {
     const ctx = gsap.context(() => {
         ScrollTrigger.create({
         trigger: ref.current,
-        start: "top 5%",
+        start: "top-150 5%",
         end: "bottom 5%",
         onEnter: () => {
           setNavHidden(toHidden)

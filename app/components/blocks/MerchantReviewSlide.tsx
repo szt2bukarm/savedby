@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 import GradientRevealText from '../common/GradientRevealText';
 import { useRive, useViewModelInstanceBoolean, Layout, Fit, Alignment } from '@rive-app/react-webgl2';
 import { RIVE_MANUAL_RESIZE, useRiveResize } from '@/app/utils/useRiveResize';
+import { getSpacingClasses } from '@/app/utils/spacing';
 
 const Star = () => {
   return (
@@ -52,7 +53,7 @@ const ReviewDot = ({ active, onClick, sizeClass, animate }: { active: boolean, o
         aria-label='Show review'
         aria-current={active}
         onClick={onClick}
-        className={`absolute inset-0 block cursor-pointer rounded-full transition-[background-color,transform] duration-250 hover:scale-110 active:scale-95 ${active ? 'bg-brand-orange' : 'bg-[#EBE4D1]'}`}
+        className={`absolute inset-0 block cursor-pointer rounded-full transition-[background-color,transform] duration-250 hover:scale-110 active:scale-95 translate-y-[0.2px] sm:-translate-y-[0px] ${active ? 'bg-brand-orange' : 'bg-[#EBE4D1]'}`}
       />
       <div className='absolute -inset-[35%] pointer-events-none'>
       <svg className='block w-full h-full -rotate-90' viewBox='0 0 100 100' fill='none'>
@@ -216,8 +217,11 @@ const EnableSavedbyBar = ({ enabled, setEnabled }: { enabled: boolean, setEnable
 }
 
 export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockProps) {
+  const spacingClasses = getSpacingClasses(block?.spacing);
   const [enabled, setEnabled] = useState(false);
   const reviewTextRef = useRef<any>(null);
+  const nameRef = useRef<any>(null);
+  const titleRef = useRef<any>(null);
   const [currentReview,setCurrentReview] = useState(0);
   const lockRef = useRef<boolean>(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -267,6 +271,10 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
       "--gradient-color" :  "#0095EC",
       duration: 0.2,
     })
+    gsap.to([nameRef.current,titleRef.current], {
+      opacity: 0,
+      duration: 0.4
+    })
     setTimeout(() => {
       setDisplayReview(ratings[index])
       lockRef.current = false;
@@ -282,6 +290,11 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
       "--gradient-color": "#110F0B",
       delay: 0.5,
       duration: 0.4,
+    })
+    gsap.to([nameRef.current,titleRef.current], {
+      opacity: 1,
+      duration: 0.4,
+      delay: 0.5
     })
   }
   
@@ -305,7 +318,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
   if (!block?.ratings?.length) return null;
 
   return (
-    <section className='relative w-full lg:min-h-[max(700px,80vh)] flex flex-col-reverse gap-[120px] lg:gap-0 lg:grid lg:grid-cols-[50%_50%] pl-[20px] pr-[20px] sm:pl-[40px] sm:pr-[40px] lg:pl-[60px] lg:pr-0! xl:pl-[110px] py-[60px]'>
+    <section className={`${spacingClasses} relative w-full lg:min-h-[max(700px,80vh)] flex flex-col-reverse gap-[120px] lg:gap-0 lg:grid lg:grid-cols-[50%_50%] pl-[20px] pr-[20px] sm:pl-[40px] sm:pr-[40px] lg:pl-[60px] lg:pr-0! xl:pl-[110px]`}>
 
       <style>{`@keyframes review-ring-fill { to { stroke-dashoffset: 0; } }`}</style>
       <div className='hidden xl:flex flex-col gap-[25px] absolute top-1/2 -translate-y-1/2 left-[45px]'>
@@ -326,8 +339,8 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
 
         <div className='flex flex-col w-full lg:w-[70%]'>
           <GradientRevealText ref={reviewTextRef} className='text-black font-riforma-regular text-mobile-h2 sm:text-desktop-h4 xl:text-desktop-h3 tracking-[-6%] leading-[85%] mb-[60px] sm:mb-[75px]'>{'"' + displayReview.quote + '"'}</GradientRevealText>
-          <p className='text-mobile-h4 sm:text-desktop-h6 text-black font-riforma-bold tracking-[-4%] leading-[85%]'>{'— ' + displayReview.name}</p>
-          <p className='text-mobile-h4 sm:text-desktop-h6 text-black font-riforma-regular tracking-[-4%] leading-[85%] mb-[40px]'>{displayReview.title}</p>
+          <p ref={nameRef} className='text-mobile-h4 sm:text-desktop-h6 text-black font-riforma-bold tracking-[-4%] leading-[85%]'>{'— ' + displayReview.name}</p>
+          <p ref={titleRef} className='text-mobile-h4 sm:text-desktop-h6 text-black font-riforma-regular tracking-[-4%] leading-[85%] mb-[40px]'>{displayReview.title}</p>
           <div className='flex gap-[24px] sm:gap-[30px] pl-[8px] xl:hidden'>
           {Array.from({length: block?.ratings?.length}).map((_, index) => (
             <ReviewDot

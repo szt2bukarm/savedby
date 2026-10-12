@@ -21,7 +21,8 @@ export default function SectionHeading({children,className = '',centered = true}
           duration: 0.75,
           scrollTrigger: {
             trigger: headingRef.current,
-            start: "25% 50%",
+            start: "25% 60%",
+            markers: true
           }
         })
       },[])

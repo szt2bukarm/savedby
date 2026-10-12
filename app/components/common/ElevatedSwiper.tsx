@@ -58,6 +58,8 @@ export interface CarouselConfig {
 
   /** Intro spin starts this many px before the carousel enters the viewport (max ~200). */
   introLead: number
+  /** Delay the intro: it starts once the carousel is this % of the viewport height inside the screen. */
+  introDelay: number
   /** Intro fade-in (see `introFade`): fade duration per card (ms). */
   introFadeDuration: number
   /** Intro fade-in: minimum gap (ms) between one card starting to fade and the next. */
@@ -83,6 +85,7 @@ export const DEFAULT_CONFIG: CarouselConfig = {
   introSpeed: 3,
   settleDistance: 40,
   introLead: 150,
+  introDelay: 25,
   introFadeDuration: 600,
   introFadeStagger: 100,
 }
@@ -659,7 +662,8 @@ export default function ElevatedSwiper({
       scheduleAuto()
     // start `introLead` px before the carousel scrolls into view, so it's already in motion
     // when it appears (keep this under the 200px rootMargin of the viewport tracker below)
-    }, { threshold: 0, rootMargin: `0px 0px ${cfg.current.conf.introLead}px 0px` })
+    // `introDelay` (% of viewport height) pushes the trigger line up, so the intro starts later
+    }, { threshold: 0, rootMargin: `0px 0px ${Math.round(cfg.current.conf.introLead - (window.innerHeight * cfg.current.conf.introDelay) / 100)}px 0px` })
     io.observe(root)
     return () => io.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -807,7 +811,7 @@ export default function ElevatedSwiper({
   return (
     <div
       ref={rootRef}
-      className={`numbered-cards-swiper relative select-none py-[48px] ${className}`}
+      className={`numbered-cards-swiper relative select-none  ${className}`}
       style={{ cursor: 'grab', ...style }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

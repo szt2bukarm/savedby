@@ -771,7 +771,7 @@ const HeroTexts = ({ firstText, secondText }: { firstText: string, secondText: s
           dataGsap="first-heading"
           text={text}
           fixFirefox={true}
-          className='absolute top-[30dvh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] whitespace-pre-line text-center select-none pb-[20px] px-[40px] w-full md:w-[865px]
+          className='absolute top-[30dvh] left-1/2 -translate-x-1/2 -translate-y-1/2 text-black font-riforma-bold leading-[85%] tracking-[-6%] sm:whitespace-pre-line text-balance text-center select-none pb-[20px] px-[40px] w-full md:w-[865px]
           [--tw:9vw] md:[--tw:67px] lg:[--tw:84px] 
           max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px] 
           text-[length:min(var(--tw),var(--th,var(--tw)))]'
@@ -821,7 +821,7 @@ const HeroTitle = ({ heading }: { heading: string }) => {
           dataGsap="hero-heading"
           text={heading}
           fixFirefox={false}
-          className='font-riforma-bold tracking-[-6%] leading-[85%] text-background w-full md:w-[865px] md:whitespace-pre-line text-center px-[40px] pb-[20px] 
+          className='font-riforma-bold tracking-[-6%] leading-[85%] text-background w-full md:w-[750px] lg:w-[865px] lg:whitespace-pre-line text-center px-[40px] pb-[20px] 
           [--tw:9vw] md:[--tw:67px] lg:[--tw:84px]
           max-h-lg:[--th:74px] max-h-md:[--th:64px] max-h-sm:[--th:54px]
           text-[length:min(var(--tw),var(--th,var(--tw)))] 

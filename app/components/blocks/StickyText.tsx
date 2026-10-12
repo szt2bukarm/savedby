@@ -109,7 +109,7 @@ export default function StickyText({ block }: StickyTextBlockProps) {
     <section className={`sticky top-0 h-screen w-full bg-background
     flex flex-col items-center justify-center gap-[20px] sm:gap-[40px]`}>
       <RiveComponent className="w-[60%] aspect-square sm:w-[310px] sm:h-[310px] shrink-0" />
-      <div className="grid items-start w-[90%] sm:w-[550px] text-center lg:w-[700px]">
+      <div className="grid items-start w-[80%] sm:w-[550px] text-center lg:w-[700px]">
         {items.map((item: any, index: number) => (
           <GradientRevealText
             key={index}

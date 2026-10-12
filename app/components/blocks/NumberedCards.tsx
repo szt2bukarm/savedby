@@ -170,7 +170,7 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
   if (!cards.length) return null
 
   return (
-    <section ref={sectionRef} className={`w-full overflow-hidden bg-background ${spacingClasses}`}>
+    <section ref={sectionRef} className={`w-full bg-background ${spacingClasses}`}>
       <ElevatedSwiper
         initialSlide={cards.length > 1 ? 1 : 0}
         autoplay

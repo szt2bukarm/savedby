@@ -54,6 +54,9 @@ export async function generateMetadata(): Promise<Metadata> {
       index: true,
       follow: true,
     },
+    icons: {
+      icon: { url: '/favico.svg', type: 'image/svg+xml' },
+    },
     alternates: {
       canonical: './',
     },
