@@ -26,6 +26,8 @@ export default function SectionHeading({children,className = '',centered = true}
         })
       },[])
 
+      
+
 
     return (
         <GradientRevealText as="p" ref={headingRef} className={`text-black text-mobile-h2 sm:text-desktop-h4 lg:text-desktop-h3 tracking-[-4%] leading-[85%] 
