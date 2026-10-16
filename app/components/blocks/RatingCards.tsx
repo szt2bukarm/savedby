@@ -20,7 +20,7 @@ export default function RatingCards({ block }: RatingCardsBlockProps) {
     <section className={`w-full ${spacingClasses} overflow-x-clip`}>
       <SectionHeading>{block?.heading}</SectionHeading>
 
-            <ElevatedSwiper initialSlide={cards.length > 1 ? 1 : 0} autoplay autoplayDelay={10000} introFade introSpin={cards.length * 2}>
+            <ElevatedSwiper initialSlide={cards.length > 1 ? 1 : 0} autoplay autoplayDelay={10000} introFade introSpin={cards.length}>
               {cards.map((card, i) => (
                 <div key={card._key || i} style={{ width: 'auto', height: 'auto' }}>
                   <div className="card-inner w-[250px] h-[250px] sm:w-[325px] lg:w-[450px] sm:h-[325px] flex flex-col justify-between px-[15px] py-[20px] sm:px-[20px] sm:py-[30px] bg-darkbg rounded-[10px]">
