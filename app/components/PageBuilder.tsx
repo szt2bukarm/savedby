@@ -12,8 +12,12 @@ import SavedbyComparison from './blocks/SavedbyComparison'
 import NavColorChangeTrigger from './blocks/NavColorChangeTrigger'
 import ParallaxDivider from './blocks/ParallaxDivider'
 import CaseStudySlider from './blocks/CaseStudySlider'
+import CaseStudy from './blocks/CaseStudy'
 import ContactForm from './blocks/ContactForm'
 import Curve from './blocks/Curve'
+import TextHero from './blocks/TextHero'
+import IntegrationLogo from './blocks/IntegrationLogo'
+import RichTextPage from './blocks/RichTextPage'
 const components: Record<string, React.ComponentType<any>> = {
   heroBlock: Hero,
   stickyTextBlock: StickyText,
@@ -28,8 +32,12 @@ const components: Record<string, React.ComponentType<any>> = {
   navColorChangeTriggerBlock: NavColorChangeTrigger,
   parallaxDividerBlock: ParallaxDivider,
   caseStudySliderBlock: CaseStudySlider,
+  caseStudyBlock: CaseStudy,
   contactFormBlock: ContactForm,
   curveBlock: Curve,
+  textHeroBlock: TextHero,
+  integrationLogoBlock: IntegrationLogo,
+  richTextPageBlock: RichTextPage,
 }
 
 export default function PageBuilder({ blocks }: { blocks: PageBlock[] }) {

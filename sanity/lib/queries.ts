@@ -20,14 +20,9 @@ const FILE_ASSET = groq`{
   }
 }`
 
-// ─── Pages ──────────────────────────────────────────────────────────
+// ─── Page Blocks ────────────────────────────────────────────────────
 
-export const PAGE_QUERY = groq`
-  *[_type == "page" && slug.current == $slug][0] {
-    _id,
-    title,
-    "slug": slug.current,
-    blocks[] {
+const BLOCKS_FIELDS = groq`
       _type,
       _key,
       disabled,
@@ -164,6 +159,34 @@ export const PAGE_QUERY = groq`
       _type == "curveBlock" => {
         color
       },
+      _type == "textHeroBlock" => {
+        curveColor,
+        smallText,
+        heading,
+        subtext
+      },
+      _type == "richTextPageBlock" => {
+        title,
+        subtext,
+        items[] {
+          _key,
+          _type,
+          label,
+          content[] {
+            ...,
+            markDefs[] { ... }
+          }
+        }
+      },
+      _type == "integrationLogoBlock" => {
+        "logo": logo { alt, "image": image ${IMAGE_ASSET} },
+        text,
+        subtext,
+        button {
+          text,
+          href
+        }
+      },
       _type == "caseStudySliderBlock" => {
         heading,
         caseStudies[] {
@@ -176,11 +199,33 @@ export const PAGE_QUERY = groq`
           "image": image ${IMAGE_ASSET}
         }
       },
+      _type == "caseStudyBlock" => {
+        heading,
+        "basePath": *[_type == "caseStudySettings"][0].basePath,
+        caseStudies[]-> {
+          _id,
+          title,
+          "slug": slug.current,
+          "logo": logo { alt, "image": image ${IMAGE_ASSET} },
+          "coverImage": coverImage { alt, "image": image ${IMAGE_ASSET} }
+        }
+      },
       _type == "contactFormBlock" => {
         variant,
         centerText,
         bottomText
       },
+`
+
+// ─── Pages ──────────────────────────────────────────────────────────
+
+export const PAGE_QUERY = groq`
+  *[_type == "page" && slug.current == $slug][0] {
+    _id,
+    title,
+    "slug": slug.current,
+    blocks[] {
+      ${BLOCKS_FIELDS}
     },
     metaTitle,
     metaDescription,
@@ -191,6 +236,68 @@ export const PAGE_QUERY = groq`
 
 export const ALL_SLUGS_QUERY = groq`
   *[_type == "page" && defined(slug.current)] {
+    "slug": slug.current,
+    _updatedAt
+  }
+`
+
+// ─── Case Studies ───────────────────────────────────────────────────
+
+export const CASE_STUDY_SETTINGS_QUERY = groq`
+  *[_type == "caseStudySettings"][0] {
+    basePath
+  }
+`
+
+export const CASE_STUDY_QUERY = groq`
+  *[_type == "caseStudy" && slug.current == $slug][0] {
+    _id,
+    title,
+    "slug": slug.current,
+    "logo": logo { alt, "image": image ${IMAGE_ASSET} },
+    "coverImage": coverImage { alt, "image": image ${IMAGE_ASSET} },
+    description,
+    industry,
+    founded,
+    hq,
+    "blocks": *[_type == "caseStudySettings"][0].blocks[] {
+      ${BLOCKS_FIELDS}
+    },
+    content[] {
+      _type,
+      _key,
+      _type == "caseStudyHeading" => {
+        heading
+      },
+      _type == "caseStudyText" => {
+        text
+      },
+      _type == "caseStudyQuote" => {
+        quote,
+        name,
+        title
+      },
+      _type == "caseStudyImage" => {
+        "image": image { alt, "image": image ${IMAGE_ASSET} }
+      },
+      _type == "caseStudyNumberCard" => {
+        number,
+        title,
+        text
+      },
+      _type == "caseStudyImageFootnote" => {
+        "image": image { alt, "image": image ${IMAGE_ASSET} },
+        footnote
+      }
+    },
+    metaTitle,
+    metaDescription,
+    "ogImageUrl": coverImage.image.asset->url
+  }
+`
+
+export const ALL_CASE_STUDY_SLUGS_QUERY = groq`
+  *[_type == "caseStudy" && defined(slug.current)] {
     "slug": slug.current,
     _updatedAt
   }

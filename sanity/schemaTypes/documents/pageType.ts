@@ -1,4 +1,5 @@
 import { defineType, defineField } from 'sanity'
+import { pageBlocks } from '../blocks/pageBlocks'
 
 export const pageType = defineType({
   name: 'page',
@@ -22,23 +23,7 @@ export const pageType = defineType({
       name: 'blocks',
       title: 'Page Blocks',
       type: 'array',
-      of: [
-        { type: 'heroBlock' },
-        { type: 'stickyTextBlock' },
-        { type: 'numberedCardsBlock' },
-        { type: 'customerStoryBlock' },
-        { type: 'featureCardsBlock' },
-        { type: 'ctaBlock' },
-        { type: 'ratingCardsBlock' },
-        { type: 'merchantReviewSlideBlock' },
-        { type: 'logoCarouselBlock' },
-        { type: 'savedbyComparisonBlock' },
-        { type: 'navColorChangeTriggerBlock' },
-        { type: 'parallaxDividerBlock' },
-        { type: 'caseStudySliderBlock' },
-        { type: 'contactFormBlock' },
-        { type: 'curveBlock' },
-      ],
+      of: pageBlocks,
     }),
     defineField({
       name: 'metaTitle',

@@ -85,7 +85,7 @@ import gsap from 'gsap'
 import GradientRevealText from '../common/GradientRevealText'
 import { useRive, useViewModelInstanceNumber, useViewModelInstanceTrigger, useViewModelInstanceFont, useViewModelInstanceImage, useViewModelInstanceBoolean, decodeFont, decodeImage } from '@rive-app/react-webgl2'
 import { urlForImage } from '@/sanity/lib/image'
-import { RIVE_MANUAL_RESIZE, useRiveResize } from '@/app/utils/useRiveResize'
+import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize'
 
 type RiveGraphicProps = { activeIndex: number, isPinned: boolean, fillHeight?: boolean, storeImage?: any, productImage?: any }
 
@@ -97,8 +97,9 @@ const RiveGraphic = ({ activeIndex, isPinned, fillHeight = false, storeImage, pr
     autoplay: !fillHeight,
     autoBind: true, 
     shouldDisableRiveListeners: true, 
-  }, RIVE_MANUAL_RESIZE);
+  }, RIVE_GATED);
   useRiveResize(rive, canvas, container);
+  useRiveRenderGate(rive, canvas);
 
   const currentSlideProp = useViewModelInstanceNumber('currentSlide', rive?.viewModelInstance);
   

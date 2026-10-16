@@ -93,4 +93,6 @@ const GradientRevealText = forwardRef<any, GradientRevealTextProps>(({
   )
 })
 
+GradientRevealText.displayName = 'GradientRevealText';
+
 export default GradientRevealText;

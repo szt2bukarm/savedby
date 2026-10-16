@@ -11,7 +11,7 @@ import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/all'
 import GradientRevealText from '../common/GradientRevealText'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
-import { RIVE_MANUAL_RESIZE, useRiveResize } from '@/app/utils/useRiveResize'
+import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize'
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -49,8 +49,9 @@ export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
     stateMachines: 'State Machine 1',
     autoplay: true,
     layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
-  }, RIVE_MANUAL_RESIZE);
+  }, RIVE_GATED);
   useRiveResize(rive, canvas, container);
+  useRiveRenderGate(rive, canvas);
 
   useGSAP(() => {
     const cards = gsap.utils.toArray<HTMLElement>('[data-gsap="case-card"]', wrapperRef.current);

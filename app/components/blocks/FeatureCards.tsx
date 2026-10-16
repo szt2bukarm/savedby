@@ -39,7 +39,7 @@ const CardRive = ({ artboard }: { artboard: string }) => {
     autoBind: true,
     shouldDisableRiveListeners: true,
   }, RIVE_GATED)
-  useRiveResize(rive, canvas, container)
+  useRiveResize(rive, canvas, container,1.5)
   useRiveRenderGate(rive, canvas, '[data-k]')
 
   const fontProp = useViewModelInstanceFont('font', rive?.viewModelInstance)
@@ -49,6 +49,10 @@ const CardRive = ({ artboard }: { artboard: string }) => {
   useEffect(() => {
     fontLoaded.current = false
   }, [rive])
+
+  useEffect(() => {
+    if (canvas) canvas.style.filter = 'brightness(1)'
+  }, [canvas])
 
   useEffect(() => {
     if (fontProp?.setValue && fontBoldProp?.setValue && !fontLoaded.current) {

@@ -1,30 +1,36 @@
 "use client"
 import { ReactNode, useRef } from "react"
 import GradientRevealText from "./GradientRevealText"
-import { PortableTextComponents } from "next-sanity"
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function SectionHeading({children,className = '',centered = true} : {children: ReactNode,className?:string,centered?:boolean}) {
     const headingRef = useRef<any>(null);
 
       useGSAP(() => {
-        gsap.set(headingRef.current, {
-          "--gradient-size": "0%",
-          "--gradient-position": "-15% -15%",
-          "--gradient-color" : "#FD4015",
-        })
-    
-        gsap.to(headingRef.current, {
-          "--gradient-size": "120%",
-          "--gradient-color": "#110F0B",
-          duration: 0.75,
-          scrollTrigger: {
-            trigger: headingRef.current,
-            start: "25% 60%",
+        if (!headingRef.current) return;
+
+        gsap.fromTo(
+          headingRef.current,
+          {
+            "--gradient-size": "0%",
+            "--gradient-position": "-15% -15%",
+            "--gradient-color": "#FD4015",
+          },
+          {
+            "--gradient-size": "120%",
+            "--gradient-color": "#110F0B",
+            duration: 0.75,
+            scrollTrigger: {
+              trigger: headingRef.current,
+              start: "25% 60%",
+            },
           }
-        })
-      },[])
+        );
+      }, [children])
 
       
 

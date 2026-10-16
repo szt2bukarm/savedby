@@ -1,14 +1,23 @@
 import { MetadataRoute } from 'next'
 import { client } from '@/sanity/lib/client'
-import { ALL_SLUGS_QUERY, SEO_QUERY } from '@/sanity/lib/queries'
+import { DEFAULT_CASE_STUDY_BASE_PATH, getCaseStudyBasePath } from '@/app/utils/caseStudy'
+import { ALL_SLUGS_QUERY, ALL_CASE_STUDY_SLUGS_QUERY, SEO_QUERY } from '@/sanity/lib/queries'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let seoData
   let pages: { slug: string; _updatedAt?: string }[] = []
+  let caseStudyBasePath = DEFAULT_CASE_STUDY_BASE_PATH
+  let caseStudies: { slug: string; _updatedAt?: string }[] = []
   try {
     seoData = await client.fetch(SEO_QUERY, {}, { next: { revalidate: 3600 } })
     pages = await client.fetch(
       ALL_SLUGS_QUERY,
+      {},
+      { next: { revalidate: 3600 } }
+    )
+    caseStudyBasePath = await getCaseStudyBasePath()
+    caseStudies = await client.fetch(
+      ALL_CASE_STUDY_SLUGS_QUERY,
       {},
       { next: { revalidate: 3600 } }
     )
@@ -39,6 +48,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: page._updatedAt ? new Date(page._updatedAt) : undefined,
         changeFrequency: 'weekly',
         priority: 0.8,
+      })
+    }
+  })
+
+  caseStudies.forEach(caseStudy => {
+    if (caseStudy.slug) {
+      sitemapEntries.push({
+        url: `${baseUrl}/${caseStudyBasePath}/${caseStudy.slug}`,
+        lastModified: caseStudy._updatedAt ? new Date(caseStudy._updatedAt) : undefined,
+        changeFrequency: 'weekly',
+        priority: 0.7,
       })
     }
   })

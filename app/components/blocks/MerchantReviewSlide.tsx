@@ -7,7 +7,7 @@ import { useGSAP } from '@gsap/react';
 import confetti from 'canvas-confetti';
 import GradientRevealText from '../common/GradientRevealText';
 import { useRive, useViewModelInstanceBoolean, Layout, Fit, Alignment } from '@rive-app/react-webgl2';
-import { RIVE_MANUAL_RESIZE, useRiveResize } from '@/app/utils/useRiveResize';
+import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize';
 import { getSpacingClasses } from '@/app/utils/spacing';
 
 const Star = () => {
@@ -106,50 +106,81 @@ const EnableSavedbyBar = ({ enabled, setEnabled }: { enabled: boolean, setEnable
     };
   }, []);
 
+  const MIN_PRESS_MS = 150;
+  const pressStartRef = useRef(0);
+  const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const mouseDown = () => {
     gsap.to(buttonRef.current,{
       scale: 0.98,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
     gsap.to(svgContainerRef.current, {
       scale: 0.95,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
     gsap.to(svgRef.current, {
       scale: 0.8,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
     gsap.to(checkboxRef.current, {
       scale: 0.7,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
   }
   const mouseUp = () => {
     gsap.to(buttonRef.current,{
       scale: 1,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
     gsap.to(svgContainerRef.current, {
       scale: 1,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
     gsap.to(svgRef.current, {
       scale: 1,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
     gsap.to(checkboxRef.current, {
       scale: 1,
       duration: 0.15,
-      ease: "power1.inOut"
+      ease: "power1.inOut",
+      overwrite: "auto"
     })
   }
+
+  const handlePress = () => {
+    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+    pressStartRef.current = Date.now();
+    mouseDown();
+  };
+
+  const handleRelease = () => {
+    if (!pressStartRef.current) return;
+    const elapsed = Date.now() - pressStartRef.current;
+    pressStartRef.current = 0;
+    const remaining = Math.max(0, MIN_PRESS_MS - elapsed);
+    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+    releaseTimerRef.current = setTimeout(mouseUp, remaining);
+  };
+
+  useEffect(() => () => {
+    if (releaseTimerRef.current) clearTimeout(releaseTimerRef.current);
+  }, []);
 
   useGSAP(() => {
     if (!enabled) {
@@ -189,11 +220,18 @@ const EnableSavedbyBar = ({ enabled, setEnabled }: { enabled: boolean, setEnable
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] pointer-events-none" 
       />
       <button 
-      onClick={() => setEnabled(prev => !prev)}
-      onMouseDown={mouseDown}
-      onMouseUp={mouseUp}
-      onTouchStart={mouseDown}
-      onTouchEnd={mouseUp}
+      onClick={(e) => {
+        setEnabled(prev => !prev)
+        // keyboard activation has no pointer events
+        if (e.detail === 0) {
+          handlePress();
+          handleRelease();
+        }
+      }}
+      onPointerDown={handlePress}
+      onPointerUp={handleRelease}
+      onPointerLeave={handleRelease}
+      onPointerCancel={handleRelease}
       ref={buttonRef}
       className='relative w-full rounded-[18px] border-[2px] border-[#D2D2D2] bg-white active:bg-gray-200 hover:bg-gray-200 transition-colors duration-150 flex justify-between items-center p-[10px] cursor-pointer'>
 
@@ -241,8 +279,9 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
       fit: Fit.Cover,
       alignment: Alignment.Center,
     }),
-  }, RIVE_MANUAL_RESIZE);
+  }, RIVE_GATED);
   useRiveResize(rive, canvas, container);
+  useRiveRenderGate(rive, canvas);
 
   const toggleOnProp = useViewModelInstanceBoolean('toggleOn', rive?.viewModelInstance);
 

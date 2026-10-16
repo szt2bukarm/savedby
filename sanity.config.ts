@@ -15,6 +15,7 @@ const singletonTypes = new Set([
   'footer',
   'mobileNav',
   'seoSettings',
+  'caseStudySettings',
 ])
 
 export default defineConfig({
@@ -56,6 +57,11 @@ export default defineConfig({
               ),
             S.documentTypeListItem('navLink').title('Navigation Links'),
             S.documentTypeListItem('caseStudy').title('Case Studies'),
+            S.listItem()
+              .title('Case Study Settings')
+              .child(
+                S.document().schemaType('caseStudySettings').documentId('caseStudySettings')
+              ),
           ]),
     }),
     presentationTool({
@@ -70,6 +76,10 @@ export default defineConfig({
       },
       resolve: {
         mainDocuments: defineDocuments([
+          {
+            route: '/:base/:slug',
+            filter: `_type == "caseStudy" && slug.current == $slug`,
+          },
           {
             route: '/:slug',
             filter: `_type == "page" && slug.current == $slug || _id == $slug`,

@@ -9,6 +9,7 @@ import { seoType } from './objects/seoType'
 import { multiLineBoldInputType } from './objects/multiLineBoldInputType'
 import { footerColumnType } from './objects/footerColumnType'
 import { spacingType } from './objects/spacingType'
+import { caseStudyContentTypes } from './objects/caseStudyContentType'
 
 // ─── Blocks ─────────────────────────────────────────────────────────
 import { heroBlock } from './blocks/heroBlock'
@@ -24,13 +25,18 @@ import { savedbyComparisonBlock } from './blocks/savedbyComparisonBlock'
 import { navColorChangeTriggerBlock } from './blocks/navColorChangeTriggerBlock'
 import { parallaxDividerBlock } from './blocks/parallaxDividerBlock'
 import { caseStudySliderBlock } from './blocks/caseStudySliderBlock'
+import { caseStudyBlock } from './blocks/caseStudyBlock'
 import { contactFormBlock } from './blocks/contactFormBlock'
 import { curveBlock } from './blocks/curveBlock'
+import { textHeroBlock } from './blocks/textHeroBlock'
+import { integrationLogoBlock } from './blocks/integrationLogoBlock'
+import { richTextPageBlock, richTextContentType, dropdownRichTextType } from './blocks/richTextPageBlock'
 
 // ─── Singletons ─────────────────────────────────────────────────────
 import { navType } from './singletons/navType'
 import { footerType } from './singletons/footerType'
 import { mobileNavType } from './singletons/mobileNavType'
+import { caseStudySettingsType } from './singletons/caseStudySettingsType'
 // ─── Documents ──────────────────────────────────────────────────────
 import { pageType } from './documents/pageType'
 import { caseStudyType } from './documents/caseStudyType'
@@ -47,6 +53,7 @@ export const schemaTypes = [
   multiLineBoldInputType,
   footerColumnType,
   spacingType,
+  ...caseStudyContentTypes,
 
   // Blocks
   heroBlock,
@@ -63,13 +70,20 @@ export const schemaTypes = [
   navColorChangeTriggerBlock,
   parallaxDividerBlock,
   caseStudySliderBlock,
+  caseStudyBlock,
   contactFormBlock,
   curveBlock,
+  textHeroBlock,
+  integrationLogoBlock,
+  richTextContentType,
+  dropdownRichTextType,
+  richTextPageBlock,
 
   // Singletons
   navType,
   footerType,
   mobileNavType,
+  caseStudySettingsType,
   
   // Documents
   pageType,

@@ -1,0 +1,22 @@
+// Block types available in page builder fields
+export const pageBlocks = [
+  { type: 'heroBlock' },
+  { type: 'stickyTextBlock' },
+  { type: 'numberedCardsBlock' },
+  { type: 'customerStoryBlock' },
+  { type: 'featureCardsBlock' },
+  { type: 'ctaBlock' },
+  { type: 'ratingCardsBlock' },
+  { type: 'merchantReviewSlideBlock' },
+  { type: 'logoCarouselBlock' },
+  { type: 'savedbyComparisonBlock' },
+  { type: 'navColorChangeTriggerBlock' },
+  { type: 'parallaxDividerBlock' },
+  { type: 'caseStudySliderBlock' },
+  { type: 'caseStudyBlock' },
+  { type: 'contactFormBlock' },
+  { type: 'curveBlock' },
+  { type: 'textHeroBlock' },
+  { type: 'integrationLogoBlock' },
+  { type: 'richTextPageBlock' },
+]

@@ -7,6 +7,7 @@ import { useGSAP } from "@gsap/react"
 import gsap from "gsap"
 import { CustomEase } from "gsap/CustomEase"
 import Box from "./Box"
+import { Link } from "next-view-transitions"
 gsap.registerPlugin(CustomEase)
 
 const AnchorDown = ({ color } : {color:string}) => {
@@ -91,7 +92,7 @@ const NavDropdownLink = ({ link }: { link: NavLink }) => {
     }, { scope: rowRef, dependencies: [link.text] });
 
     return (
-        <a
+        <Link
             ref={rowRef}
             href={link.href}
             data-gsap="nav-dropdown-link"
@@ -108,7 +109,7 @@ const NavDropdownLink = ({ link }: { link: NavLink }) => {
                 <span data-gsap='nav-regular' className="[grid-area:1/1] font-riforma-regular whitespace-nowrap">{link.text}</span>
                 <span data-gsap='nav-bold' aria-hidden className="[grid-area:1/1] font-riforma-bold whitespace-nowrap">{link.text}</span>
             </span>
-        </a>
+        </Link>
     )
 }
 
@@ -202,7 +203,7 @@ const NavDropdown = ({ items, direction, all, onClosed }: { items: NavDropdown |
     const open = !!items;
 
     return (
-        <div ref={containerRef} className="fixed inset-0 z-10 pointer-events-none overflow-hidden">
+        <div ref={containerRef} style={{viewTransitionName: "nav-dropdown"}} className="fixed inset-0 z-10 pointer-events-none overflow-hidden">
             <div className="relative w-full">
                 {/* invisible hover zone extending below the panel so slipping off the content doesn't close it */}
                 <div className={`absolute top-0 left-0 w-full h-full ${open ? 'pointer-events-auto' : 'pointer-events-none'}`} />
@@ -295,13 +296,17 @@ export default function Nav({ data }: { data?: NavData }) {
     const effectiveNavColor = (activeDropdown || dropdownVisible) ? 'light' : navColor;
 
     return (
-        <nav onMouseLeave={() => setActiveDropdown(null)} className={`fixed z-[100] top-0 left-0 w-full px-[20px] sm:px-[40px] lg:px-[60px] xl:px-[110px] py-[30px] sm:py-[40px] max-h-sm:py-[25px] flex items-center justify-between pointer-events-none transition-opacity duration-300 ${navHidden ? 'opacity-0' : 'opacity-100'}`}>
+        <nav style={{viewTransitionName: "nav"}} onMouseLeave={() => setActiveDropdown(null)} className={`fixed z-[100] top-0 left-0 w-full px-[20px] sm:px-[40px] lg:px-[60px] xl:px-[110px] py-[30px] sm:py-[40px] max-h-sm:py-[25px] flex items-center justify-between pointer-events-none transition-opacity duration-300 ${navHidden ? 'opacity-0' : 'opacity-100'}`}>
             <div ref={gradientRef} style={{
                 backgroundColor: FALLBACK_BG,
                 maskImage: MASK,
                 WebkitMaskImage: MASK,
             }} className={`${effectiveNavColor === "light" ? "opacity-0" : "opacity-100"} transition-[opacity,background-color] duration-300 fixed top-0 left-0 right-0 w-full h-[130px] z-10`}></div>
-            <SavedByLogo color={effectiveNavColor == "light" ? "#FDF6E2" : "#110F0B"} className={`lg:absolute lg:left-1/2 lg:-translate-1/2 lg:top-[60px] lg:max-h-sm:top-[45px] w-[100px] sm:w-[145px] sm:h-[42px] z-20 ${navHidden ? 'pointer-events-none' : 'pointer-events-auto'} transition-colors duration-300`} />
+
+            <Link href={"/"} className={`lg:absolute lg:left-1/2 lg:-translate-1/2 lg:top-[60px] lg:max-h-sm:top-[45px] w-[100px] sm:w-[145px] sm:h-[42px] z-20 ${navHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}>
+            <SavedByLogo color={effectiveNavColor == "light" ? "#FDF6E2" : "#110F0B"} className="
+            transition-colors duration-300 w-full h-full" />
+            </Link>
 
             <div className={`hidden lg:flex gap-[27px] z-20 ${navHidden ? 'pointer-events-none' : 'pointer-events-auto'}`}>
                 {data?.dropdowns?.map((item, index) => 

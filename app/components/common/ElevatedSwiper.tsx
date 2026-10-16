@@ -237,6 +237,7 @@ export default function ElevatedSwiper({
     hidden: [] as boolean[],
     promoted: false, // will-change currently applied to the cards
     introPending: false,
+    intro: false, // intro spin / fade currently running
     // intro fade-in: per ring card, the time (ms) its fade starts (-1 = not on screen yet)
     fade: { active: false, startAt: [] as number[], nextSlot: 0, done: [] as boolean[] },
     locked: null as null | boolean, // current touch-action lock state
@@ -310,7 +311,7 @@ export default function ElevatedSwiper({
   const emitSettle = () => {
     if (S.closest < 0) return
     cfg.current.onSettle?.(getInfo(S.closest))
-    if (!cfg.current.activateWhileScrolling) activate(S.closest)
+    if (!cfg.current.activateWhileScrolling || S.intro) activate(S.closest)
     // Count autoplayDelay from the moment the card settles (not from when the move began),
     // so per-card UI (e.g. progress bars) gets the full delay. Matters for the long intro spin.
     if (!S.drag) scheduleAuto()
@@ -325,11 +326,28 @@ export default function ElevatedSwiper({
   const syncTouchLock = () => {
     const root = rootRef.current
     if (!root) return
-    const lock = cfg.current.conf.touchLock === 'always' || !!S.anim || !!S.drag
+    // the intro can't be grabbed, so it must not block page scrolling either
+    const lock = cfg.current.conf.touchLock === 'always' || (!!S.anim && !S.intro) || !!S.drag
     if (lock !== S.locked) {
       S.locked = lock
       root.style.touchAction = lock ? 'none' : 'pan-y'
     }
+  }
+
+  /**
+   * `data-intro` is on the root while the scroll-in spin / fade-in runs. Heavy cards (e.g. Rive
+   * canvases) can watch it to hold still until the intro is over, so the spin only has to move
+   * and fade static layers instead of re-drawing every card each frame.
+   */
+  const setIntro = (on: boolean) => {
+    if (S.intro === on) return
+    S.intro = on
+    const root = rootRef.current
+    if (!root) return
+    if (on) root.setAttribute('data-intro', 'true')
+    else root.removeAttribute('data-intro')
+    root.style.cursor = on ? '' : 'grab'
+    if (!on && cfg.current.activateWhileScrolling) activate(S.closest)
   }
 
   /**
@@ -342,7 +360,8 @@ export default function ElevatedSwiper({
     if (moving === S.promoted) return
     S.promoted = moving
     const v = moving ? 'transform' : ''
-    for (const el of itemEls.current) if (el) el.style.willChange = v
+    // only cards that are actually drawn get a layer; the hidden ring copies never do
+    itemEls.current.forEach((el, k) => { if (el) el.style.willChange = S.hidden[k] ? '' : v })
   }
 
   /* ---------------- rendering ---------------- */
@@ -374,10 +393,10 @@ export default function ElevatedSwiper({
       // cards well outside the viewport: don't touch their transform, just hide them once
       const off = ad - w / 2 > cx + 300
       if (off) {
-        if (!S.hidden[k]) { el.style.visibility = 'hidden'; S.hidden[k] = true }
+        if (!S.hidden[k]) { el.style.visibility = 'hidden'; el.style.willChange = ''; S.hidden[k] = true }
         continue
       }
-      if (S.hidden[k]) { el.style.visibility = ''; S.hidden[k] = false }
+      if (S.hidden[k]) { el.style.visibility = ''; if (S.promoted) el.style.willChange = 'transform'; S.hidden[k] = false }
       el.style.transform = `translate3d(${cx + d - w / 2}px, ${getTranslateY(ad / (w + gap))}px, 0) scale(${S.scale})`
       // first time this card is on screen during the intro: schedule its fade
       if (F.active && F.startAt[k] === undefined && ad - w / 2 < cx) newlyVisible.push({ k, d })
@@ -409,7 +428,9 @@ export default function ElevatedSwiper({
     if (bestK !== S.closest) {
       S.closest = bestK
       cfg.current.onActiveChange?.(getInfo(bestK))
-      if (cfg.current.activateWhileScrolling) activate(bestK)
+      // during the intro spin every passing card would kick off its activation animations;
+      // the intro activates only the card it lands on (see emitSettle)
+      if (cfg.current.activateWhileScrolling && !S.intro) activate(bestK)
     }
   }
 
@@ -465,6 +486,14 @@ export default function ElevatedSwiper({
       }
     }
     syncTouchLock()
+    // The intro ends when the spin is over and the fade is done. If the carousel is offscreen
+    // the fade can't progress (render is skipped) and the loop below would stop with the intro
+    // still flagged, leaving the carousel un-draggable: finish the fade instantly instead.
+    if (S.intro && !S.anim && S.fade.active && !S.onScreen) {
+      S.fade.active = false
+      itemEls.current.forEach((el) => { if (el) el.style.opacity = '' })
+    }
+    if (S.intro && (S.drag || (!S.anim && !S.fade.active))) setIntro(false)
     if (S.anim || S.drag || scaling || (S.fade.active && S.onScreen)) S.raf = requestAnimationFrame(step)
     else { S.lastT = 0; syncPromotion(false) }
   }
@@ -570,7 +599,9 @@ export default function ElevatedSwiper({
     // Enough copies that the wrap window is wider than anything that can be on screen,
     // however few cards there are. Cards only ever teleport while fully off-screen.
     const cover = 2 * Math.max(window.innerWidth, root.clientWidth) + 2 * (maxW + gap)
-    const need = Math.max(3, Math.ceil(cover / L))
+    // (2 copies is enough once a single copy is wide: every extra copy is a full set of cards,
+    // and for heavy cards, e.g. Rive canvases, a full set of WebGL contexts)
+    const need = Math.max(2, Math.ceil(cover / L))
     if (need !== copies) { setCopies(need); return }
 
     const sig = `${widths.join(',')}|${gap}|${copies}|${root.clientWidth}|${maxH}`
@@ -657,6 +688,7 @@ export default function ElevatedSwiper({
       if (S.drag) return
       const target = g(nearestK(S.pos) + cfg.current.introSpin)
       const w = cfg.current.conf.introSpeed
+      setIntro(true)
       // v0 = distance * ω gives a pure decelerating spin that lands exactly on the card
       startAnim(target, (target - S.pos) * w, w)
       scheduleAuto()
@@ -713,7 +745,7 @@ export default function ElevatedSwiper({
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
-    if (!S.layout.centers.length) return
+    if (!S.layout.centers.length || (S.intro && S.anim)) return // not interactive until the intro spin has landed
     const gliding = !!S.anim
     const carryV = gliding ? S.vel : 0
     const item = (e.target as HTMLElement).closest('[data-k]')?.getAttribute('data-k')
@@ -817,6 +849,12 @@ export default function ElevatedSwiper({
       onPointerMove={onPointerMove}
       onPointerUp={endPointer}
       onPointerCancel={endPointer}
+      onLostPointerCapture={(e) => {
+        if (S.drag && S.drag.id === e.pointerId) endPointer(e)
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === 'mouse' && S.drag && S.drag.id === e.pointerId) endPointer(e)
+      }}
       onDragStart={(e) => e.preventDefault()}
       onClickCapture={(e) => {
         if (S.suppressClick) { e.stopPropagation(); e.preventDefault() }

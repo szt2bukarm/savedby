@@ -316,6 +316,53 @@ export interface CaseStudySliderBlockProps {
   block?: CaseStudySliderBlockData
 }
 
+export interface CaseStudyCardData {
+  _id: string
+  title?: string
+  slug?: string
+  logo?: { alt?: string; image?: SanityImageData }
+  coverImage?: { alt?: string; image?: SanityImageData }
+}
+
+export interface CaseStudyBlockData {
+  _type: 'caseStudyBlock'
+  _key: string
+  disabled?: boolean
+  heading?: MultiLineBoldInput
+  basePath?: string
+  caseStudies?: CaseStudyCardData[]
+  spacing?: SpacingData
+}
+
+export interface CaseStudyBlockProps {
+  block?: CaseStudyBlockData
+}
+
+export interface CaseStudyImageData {
+  alt?: string
+  image?: SanityImageData
+}
+
+export type CaseStudyContentBlock =
+  | { _type: 'caseStudyHeading'; _key: string; heading?: MultiLineBoldInput }
+  | { _type: 'caseStudyText'; _key: string; text?: string }
+  | { _type: 'caseStudyQuote'; _key: string; quote?: string; name?: string; title?: string }
+  | { _type: 'caseStudyImage'; _key: string; image?: CaseStudyImageData }
+  | { _type: 'caseStudyNumberCard'; _key: string; number?: string; title?: string; text?: string }
+  | { _type: 'caseStudyImageFootnote'; _key: string; image?: CaseStudyImageData; footnote?: string }
+
+export interface CaseStudyData extends CaseStudyCardData {
+  description?: string
+  industry?: string
+  founded?: string
+  hq?: string
+  content?: CaseStudyContentBlock[]
+  blocks?: PageBlock[]
+  metaTitle?: string
+  metaDescription?: string
+  ogImageUrl?: string
+}
+
 export interface ContactFormBlockData {
   _type: 'contactFormBlock'
   _key: string
@@ -334,7 +381,7 @@ export interface CurveBlockData {
   _type: 'curveBlock'
   _key: string
   disabled?: boolean
-  color?: 'offwhite' | 'orange' | 'blue'
+  color?: 'offwhite' | 'orange' | 'blue' | 'brown'
   spacing?: SpacingData
 }
 
@@ -342,7 +389,59 @@ export interface CurveBlockProps {
   block?: CurveBlockData
 }
 
+export interface TextHeroBlockData {
+  _type: 'textHeroBlock'
+  _key: string
+  disabled?: boolean
+  curveColor?: 'blue' | 'orange' | 'brown'
+  smallText?: string
+  heading?: string
+  subtext?: string
+  spacing?: SpacingData
+}
+
+export interface TextHeroBlockProps {
+  block?: TextHeroBlockData
+}
+
+export interface IntegrationLogoBlockData {
+  _type: 'integrationLogoBlock'
+  _key: string
+  disabled?: boolean
+  logo?: {
+    alt?: string
+    image?: SanityImageData
+  }
+  text?: string
+  subtext?: string
+  button?: ButtonData
+  spacing?: SpacingData
+}
+
+export interface IntegrationLogoBlockProps {
+  block?: IntegrationLogoBlockData
+}
+
+export type RichTextPageItem =
+  | { _type: 'richTextContent'; _key: string; content?: PortableTextBlock[] }
+  | { _type: 'dropdownRichText'; _key: string; label?: string; content?: PortableTextBlock[] }
+
+export interface RichTextPageBlockData {
+  _type: 'richTextPageBlock'
+  _key: string
+  disabled?: boolean
+  title?: string
+  subtext?: string
+  items?: RichTextPageItem[]
+  spacing?: SpacingData
+}
+
+export interface RichTextPageBlockProps {
+  block?: RichTextPageBlockData
+}
+
 export type PageBlock =
+  | RichTextPageBlockData
   | HeroBlockData
   | StickyTextBlockData
   | NumberedCardsBlockData
@@ -355,8 +454,11 @@ export type PageBlock =
   | SavedbyComparisonBlockData
   | NavColorChangeTriggerBlockData
   | CaseStudySliderBlockData
+  | CaseStudyBlockData
   | ContactFormBlockData
   | CurveBlockData
+  | TextHeroBlockData
+  | IntegrationLogoBlockData
   | { _type: string; _key: string; spacing?: SpacingData; [key: string]: unknown }
 
 export interface PageData {

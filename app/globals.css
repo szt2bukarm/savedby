@@ -42,6 +42,7 @@ html {
   --color-darkbg: #EBE4D1;
   --color-brand-orange: #FD4015;
   --color-brand-blue: #0095EC;
+  --color-brand-brown: #AB5741;
   --color-black: #110F0B;
 
   /* ===== BREAKPOINTS ===== */
@@ -119,3 +120,4 @@ html {
 .custom-phone-input .PhoneInputCountryIconImg {
   @apply w-full h-full object-cover;
 }
+

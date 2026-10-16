@@ -1,5 +1,6 @@
 import SmoothScroll from '../SmoothScroll'
 import { ScrollReset } from '../components/ScrollReset'
+import HeroSceneProvider from '../components/blocks/Hero/HeroSceneProvider'
 import Loader from '../components/common/Loader'
 import Nav from '../components/common/Nav'
 import { client } from '@/sanity/lib/client'
@@ -20,13 +21,15 @@ export default async function SiteLayout({
 
   return (
       <SmoothScroll>
-        <Loader />
-        <ScrollReset />
-        <div className="relative h-full w-full overflow-x-clip">
-          <Nav data={navData} />
-          {children}
-          <Footer data={footerData} />
-        </div>
+        <HeroSceneProvider>
+          <Loader />
+          <ScrollReset />
+          <div className="relative h-full w-full overflow-x-clip">
+            <Nav data={navData} />
+            {children}
+            <Footer data={footerData} />
+          </div>
+        </HeroSceneProvider>
       </SmoothScroll>
   )
 }

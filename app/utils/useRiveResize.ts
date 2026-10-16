@@ -20,23 +20,69 @@ export const RIVE_MANUAL_RESIZE = { shouldResizeCanvasToContainer: false } as co
  */
 export const RIVE_GATED = { ...RIVE_MANUAL_RESIZE, shouldUseIntersectionObserver: false } as const
 
+/**
+ * Gated Rives that are off screen have never drawn, so their first frame would otherwise be
+ * produced right as they scroll in (mid-animation). This draws one frame for each of them in
+ * idle time after load, one instance at a time, so they come into view already painted.
+ */
+const primeQueue: (() => Promise<void>)[] = []
+let priming = false
+const idle = (cb: () => void) =>
+  'requestIdleCallback' in window ? requestIdleCallback(cb, { timeout: 2000 }) : setTimeout(cb, 200)
+const nextFrames = (n: number) =>
+  new Promise<void>((r) => { const f = () => (--n <= 0 ? r() : requestAnimationFrame(f)); requestAnimationFrame(f) })
+function enqueuePrime(job: () => Promise<void>) {
+  primeQueue.push(job)
+  if (priming) return
+  priming = true
+  const run = () => idle(async () => {
+    const next = primeQueue.shift()
+    if (!next) { priming = false; return }
+    await next()
+    run()
+  })
+  run()
+}
+
+/**
+ * `stopRendering()` doesn't reset Rive's internal `lastRenderTime`, so the first frame after
+ * `startRendering()` advances the animation by the whole time it was paused (it appears frozen
+ * but then jumps ahead). Zeroing it makes the first resumed frame have elapsedTime === 0, so
+ * animations continue from the frozen state.
+ */
+const resume = (rive: Rive) => {
+  ;(rive as unknown as { lastRenderTime: number }).lastRenderTime = 0
+  rive.startRendering()
+}
+
 export function useRiveRenderGate(
   rive: Rive | null,
   canvas: HTMLCanvasElement | null,
-  itemSelector: string,
+  itemSelector?: string,
   rootMargin = '100px',
 ) {
   useEffect(() => {
     if (!rive || !canvas) return
-    const item = canvas.closest<HTMLElement>(itemSelector)
+    const item = itemSelector ? canvas.closest<HTMLElement>(itemSelector) : null
+    // ElevatedSwiper sets data-intro on its root during the scroll-in spin: hold still then
+    const host = canvas.closest<HTMLElement>('[data-intro-host], .numbered-cards-swiper')
     let intersecting = false
     let rendering: boolean | null = null
+    let drawn = false // has produced at least one frame (so a held canvas isn't blank)
+    let holdTimer: ReturnType<typeof setTimeout> | undefined
 
     const update = () => {
-      const should = intersecting && item?.style.visibility !== 'hidden'
+      const visible = intersecting && item?.style.visibility !== 'hidden'
+      const held =  !!host?.hasAttribute('data-intro')
+      const should = visible && !(held && drawn)
+      if (should && held && !drawn && !holdTimer) {
+        // held before its first frame: let it draw briefly, then freeze on that frame
+        holdTimer = setTimeout(() => { holdTimer = undefined; drawn = true; update() }, 150)
+      }
+      if (should && !held) drawn = true
       if (should === rendering) return
       rendering = should
-      if (should) rive.startRendering()
+      if (should) resume(rive)
       else rive.stopRendering()
     }
 
@@ -48,10 +94,25 @@ export function useRiveRenderGate(
 
     const mo = item ? new MutationObserver(update) : null
     if (item && mo) mo.observe(item, { attributes: true, attributeFilter: ['style'] })
+    const mo2 = host ? new MutationObserver(update) : null
+    if (host && mo2) mo2.observe(host, { attributes: true, attributeFilter: ['data-intro'] })
+
+    let cancelled = false
+    enqueuePrime(async () => {
+      if (cancelled || drawn || rendering) return
+      resume(rive)
+      await nextFrames(3)
+      if (cancelled) return
+      drawn = true
+      if (!rendering) rive.stopRendering()
+    })
 
     return () => {
+      cancelled = true
+      clearTimeout(holdTimer)
       io.disconnect()
       mo?.disconnect()
+      mo2?.disconnect()
     }
   }, [rive, canvas, itemSelector, rootMargin])
 }
@@ -65,7 +126,7 @@ export function useRiveResize(
   rive: Rive | null,
   canvas: HTMLCanvasElement | null,
   container: HTMLElement | null,
-  maxDpr = 2,
+  maxDpr = 1.5, // 2x costs ~1.8x the pixels per frame for barely visible sharpness
 ) {
   useEffect(() => {
     if (!rive || !canvas || !container) return

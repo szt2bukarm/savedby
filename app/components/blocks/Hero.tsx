@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useMemo, Suspense, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, Suspense, useRef } from 'react'
 import type { SanityImageData } from '@/types/sanity'
 import SanityImage from '../common/SanityImage'
 import { Canvas, useFrame, useThree, createPortal } from '@react-three/fiber'
@@ -19,7 +19,7 @@ import {
   createFakeShadowMaterial,
 } from './Hero/heroShaders'
 import { useLenis } from 'lenis/react'
-import { useAppContext } from '@/app/AppContext'
+import { useHeroScene } from './Hero/HeroSceneContext'
 import InstancedGrass from './Hero/InstancedGrass'
 import { useStickers } from './Hero/useStickers'
 gsap.registerPlugin(ScrollTrigger, CustomEase)
@@ -53,14 +53,18 @@ interface HeroProps {
 const Hero3DBox = ({
   stickersApplied = true,
   wobbleEnabled = true,
+  mountToken,
 }: {
   stickersApplied?: boolean
   wobbleEnabled?: boolean
+  /** > 0 while a Hero is mounted. Intro + scroll animations are rebuilt for each mount. */
+  mountToken: number
 }) => {
   const { scene } = useGLTF('/gltf/box.glb')
   const { boxRef, wobbleRef, stickersRef, stickersReady, dissolveUniforms } = useStickers({ scene, wobbleEnabled })
 
   useGSAP(() => {
+    if (!mountToken) return
     if (!stickersReady || stickersRef.current.length === 0) return
     if (!stickersApplied) return
 
@@ -92,9 +96,13 @@ const Hero3DBox = ({
         sticker.progress = 1
       })
     })
-  }, [stickersReady, stickersApplied])
+  }, { dependencies: [stickersReady, stickersApplied, mountToken], revertOnUpdate: true })
 
   useGSAP(() => {
+    if (!mountToken) return
+    dissolveUniforms.current.uDissolveProgress.value = 0
+    dissolveUniforms.current.uDirection.value = 1.0
+
     // Dissolve
     gsap.fromTo(
       dissolveUniforms.current.uDissolveProgress,
@@ -139,10 +147,10 @@ const Hero3DBox = ({
         },
       }
     )
-  }, [])
+  }, { dependencies: [mountToken], revertOnUpdate: true })
 
   useGSAP(() => {
-    if (!boxRef.current) return
+    if (!mountToken || !stickersReady || !boxRef.current) return
 
     gsap.fromTo(
       boxRef.current.rotation,
@@ -274,15 +282,28 @@ const Hero3DBox = ({
         },
       }
     )
-  }, [boxRef.current])
+  }, { dependencies: [stickersReady, mountToken], revertOnUpdate: true })
+
+  // While no hero is on the page, park the box in its intro start pose so the next
+  // visit never shows a stale pose for a frame (runs after the reverts above).
+  useEffect(() => {
+    if (mountToken || !boxRef.current) return
+    boxRef.current.position.set(0, 7, 0)
+    boxRef.current.rotation.set(1, -0.7, -1)
+    boxRef.current.scale.set(1, 1, 1)
+    stickersRef.current.forEach((s) => {
+      s.opacity = 0
+      s.progress = 0
+    })
+  }, [mountToken, stickersReady])
 
 
 
   return (
     <group
       ref={boxRef}
-      position={[0, -0.5, 0]}
-      rotation={[0.29, -0.7, -0.2]}
+      position={[0, 7, 0]}
+      rotation={[1, -0.7, -1]}
     >
       <group ref={wobbleRef}>
         <primitive object={scene} />
@@ -301,7 +322,7 @@ const HighResModel = ({ url, onLoad }: { url: string, onLoad: (scene: THREE.Grou
   return null
 }
 
-const Hero3DBase = () => {
+const Hero3DBase = ({ mountToken }: { mountToken: number }) => {
   const { scene: lowResScene } = useGLTF("/gltf/base.glb")
   const [highResScene, setHighResScene] = useState<THREE.Group | null>(null)
   const scene = highResScene || lowResScene
@@ -375,6 +396,10 @@ const Hero3DBase = () => {
   }, [scene, doorMaterial, shadowMaterial])
 
   useGSAP(() => {
+    if (!mountToken) return
+    doorUniforms.current.uProgress.value = 0
+    shadowUniforms.current.uOpacity.value = 0
+
     gsap.to(baseRef.current.rotation, {
       x: 0.1,
       ease: "linearSmoothEnd",
@@ -457,7 +482,7 @@ const Hero3DBase = () => {
         },
       }
     )
-  }, [])
+  }, { dependencies: [mountToken], revertOnUpdate: true })
 
   return (
     <group ref={baseRef} position={[0, -25, -13]} rotation={[0.5, 0, 0]}>
@@ -465,9 +490,9 @@ const Hero3DBase = () => {
       <InstancedGrass samplerMesh={grassPlaneMesh} />
       <Suspense fallback={null}>
         {!highResScene && (
-          <HighResModel 
-            url="/gltf/base_high.glb" 
-            onLoad={setHighResScene} 
+          <HighResModel
+            url="/gltf/base_high.glb"
+            onLoad={setHighResScene}
           />
         )}
       </Suspense>
@@ -530,7 +555,21 @@ const SceneWarmup = ({ target, onReady }: { target: THREE.Scene; onReady: () => 
       } catch {
         gl.compile(target, camera)
       }
-      // let the render loop upload textures / buffers for a few frames
+      // force one real draw of everything with frustum culling off.
+      const culled: THREE.Object3D[] = []
+      target.traverse((o) => {
+        if (o.frustumCulled) {
+          culled.push(o)
+          o.frustumCulled = false
+        }
+      })
+      target.updateMatrixWorld(true)
+      try {
+        gl.render(target, camera)
+      } finally {
+        culled.forEach((o) => (o.frustumCulled = true))
+      }
+      // let the render loop settle for a few frames
       for (let i = 0; i < 2; i++) {
         await new Promise((r) => requestAnimationFrame(r))
       }
@@ -545,13 +584,13 @@ const SceneWarmup = ({ target, onReady }: { target: THREE.Scene; onReady: () => 
   return null
 }
 
-const HeroScenes = ({
-  stickersApplied,
+export const HeroScenes = ({
   wobbleEnabled,
+  mountToken,
   onReady,
 }: {
-  stickersApplied: boolean
   wobbleEnabled: boolean
+  mountToken: number
   onReady: () => void
 }) => {
   const baseScene = useMemo(() => new THREE.Scene(), [])
@@ -582,7 +621,7 @@ const HeroScenes = ({
       <CameraController />
       {createPortal(
         <Suspense fallback={null}>
-          <Hero3DBase />
+          <Hero3DBase mountToken={mountToken} />
           <SceneWarmup target={baseScene} onReady={handleReady} />
         </Suspense>,
         baseScene,
@@ -592,7 +631,7 @@ const HeroScenes = ({
           <Environment preset='forest' environmentIntensity={1} />
           <DirectionalLightWithControls />
           <Suspense fallback={null}>
-            <Hero3DBox stickersApplied={stickersApplied} wobbleEnabled={wobbleEnabled} />
+            <Hero3DBox wobbleEnabled={wobbleEnabled} mountToken={mountToken} />
             <SceneWarmup target={boxScene} onReady={handleReady} />
           </Suspense>
         </>,
@@ -838,15 +877,16 @@ const HeroTitle = ({ heading }: { heading: string }) => {
 
 
 export default function Hero({ block }: HeroProps) {
-  const [mounted, setMounted] = useState(false)
-  const [stickersApplied, setStickersApplied] = useState(true)
-  const [wobbleEnabled, setWobbleEnabled] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
-  const canvasDpr: number | [number, number] = isMobile ? 1 : [1, 1.5]
   const [heroMounted,setHeroMounted] = useState(false);
   const lenis = useLenis();
-  const { setIsSceneReady } = useAppContext()
-  const onSceneReady = useMemo(() => () => setIsSceneReady(true), [setIsSceneReady])
+  // The WebGL scene is built once by HeroSceneProvider
+  const { attach, setHeroInView, setWobbleEnabled } = useHeroScene()
+  const slotRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (!slotRef.current) return
+    return attach(slotRef.current)
+  }, [attach])
 
   useEffect(() => {
     if (!lenis) return;
@@ -858,15 +898,6 @@ export default function Hero({ block }: HeroProps) {
     }, 1);
     gsap.delayedCall(2.6,() => lenis.start())
   },[lenis])
-
-  useEffect(() => {
-    setIsMobile(window.matchMedia('(pointer: coarse)').matches)
-    setMounted(true)
-    useGLTF.preload('/gltf/box.glb')
-    useGLTF.preload('/gltf/base.glb')
-    useTexture.preload('/assets/door.png')
-    useTexture.preload('/assets/door_blue.png')
-  }, [])
 
 
   useGSAP(() => {
@@ -976,12 +1007,15 @@ export default function Hero({ block }: HeroProps) {
 
   // stop webgl render loop outside of hero
   const outerRef = useRef<HTMLDivElement>(null)
-  const [heroInView, setHeroInView] = useState(true)
+  const [heroInView, setLocalInView] = useState(true)
   useEffect(() => {
     const el = outerRef.current
     if (!el) return
     const observer = new IntersectionObserver(
-      ([entry]) => setHeroInView(entry.isIntersecting),
+      ([entry]) => {
+        setLocalInView(entry.isIntersecting)
+        setHeroInView(entry.isIntersecting)
+      },
       { rootMargin: '100px 0px' }
     )
     observer.observe(el)
@@ -1030,25 +1064,12 @@ export default function Hero({ block }: HeroProps) {
         )}
       </div>
 
-      {/* Single canvas: base scene (below) + box scene (above), z-10.
-          mb keeps the document flow identical to the former two stacked sticky canvases. */}
       <div
         data-canvas="scene"
         className="sticky top-0 w-full h-[100dvh] z-10 pointer-events-none mb-[calc(100dvh-100dvh)]"
       >
-        <div className="relative w-full h-[100dvh] pointer-events-none">
-          {mounted && (
-            <Canvas
-              camera={{ fov: 18.18, position: [0, 0, 35] }}
-              dpr={canvasDpr}
-              frameloop={heroInView ? 'always' : 'never'}
-              gl={{ antialias: !isMobile, powerPreference: 'high-performance' }}
-              style={{ pointerEvents: 'none' }}
-              className='pointer-events-none w-full h-[100dvh]'>
-              <HeroScenes stickersApplied={stickersApplied} wobbleEnabled={wobbleEnabled} onReady={onSceneReady} />
-            </Canvas>
-          )}
-        </div>
+        {/* the persistent canvas from HeroSceneProvider is moved in here */}
+        <div ref={slotRef} className="relative w-full h-[100dvh] pointer-events-none" />
       </div>
 
       {/* Left cloud (behind box, z-0) */}

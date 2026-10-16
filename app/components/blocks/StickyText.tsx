@@ -5,7 +5,7 @@ import { PortableTextComponents } from 'next-sanity';
 import { useRef, useState, useEffect } from 'react';
 import { useRive, useViewModelInstanceBoolean, Layout, Fit, Alignment } from '@rive-app/react-webgl2';
 import GradientRevealText from '../common/GradientRevealText';
-import { RIVE_MANUAL_RESIZE, useRiveResize } from '@/app/utils/useRiveResize';
+import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/all';
@@ -34,8 +34,9 @@ export default function StickyText({ block }: StickyTextBlockProps) {
     autoplay: true,
     autoBind: true,
     layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
-  }, RIVE_MANUAL_RESIZE);
+  }, RIVE_GATED);
   useRiveResize(rive, canvas, container);
+  useRiveRenderGate(rive, canvas);
 
   const boxStateProp = useViewModelInstanceBoolean(BOX_STATE_PROP, rive?.viewModelInstance);
   const activeBoxIcon = items[activeIndex]?.boxIcon === 'damaged' ? 'damaged' : 'intact';

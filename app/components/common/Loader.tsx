@@ -81,8 +81,8 @@ export default function Loader() {
   //    rendered (if this page has one), then reveal.
   useEffect(() => {
     if (isAppLoaded || !assetsLoaded) return
-    const hasHero = !!document.querySelector("[data-gsap='hero-outer']")
-    if (hasHero && !isSceneReady) return
+    // the hero scene is built once by HeroSceneProvider on every route
+    if (!isSceneReady) return
     setIsAppLoaded(true)
   }, [assetsLoaded, isSceneReady, isAppLoaded, setIsAppLoaded])
 
