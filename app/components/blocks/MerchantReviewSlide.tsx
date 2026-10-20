@@ -215,7 +215,7 @@ const EnableSavedbyBar = ({ enabled, setEnabled }: { enabled: boolean, setEnable
   },[enabled])
 
   return (
-    <div className='absolute bottom-0 lg:bottom-[50px] left-1/2 -translate-x-1/2 w-[100%] sm:w-[90%] max-w-[520px] z-10'>
+    <div className='absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] sm:w-[90%] max-w-[520px] z-10'>
       <canvas 
         ref={canvasRef} 
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] pointer-events-none" 
@@ -359,7 +359,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
   if (!block?.ratings?.length) return null;
 
   return (
-    <section className={`${spacingClasses} relative w-full lg:min-h-[max(500px,60vh)] flex flex-col-reverse gap-[120px] lg:gap-0 lg:grid lg:grid-cols-[50%_50%] pl-[20px] pr-[20px] sm:pl-[40px] sm:pr-[40px] lg:pl-[60px] lg:pr-0! xl:pl-[110px]`}>
+    <section className={`${spacingClasses} relative w-full lg:min-h-[clamp(400px,50vh,1000px)] flex flex-col-reverse gap-[120px] lg:gap-0 lg:grid lg:grid-cols-[50%_50%] pl-[20px] pr-[20px] sm:pl-[40px] sm:pr-[40px] lg:pl-[60px] lg:pr-0! xl:pl-[110px]`}>
 
       <style>{`@keyframes review-ring-fill { to { stroke-dashoffset: 0; } }`}</style>
       <div className='hidden xl:flex flex-col gap-[25px] absolute top-1/2 -translate-y-1/2 left-[45px]'>
@@ -375,7 +375,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
         ))}
       </div>
 
-      <div className='flex flex-col justify-between gap-[50px] sm:gap-[100px] lg:h-full'>
+      <div className='flex flex-col justify-between gap-[50px] sm:gap-[50px] lg:h-full'>
 
         <p className='text-mobile-p2 sm:text-desktop-h5 text-black font-riforma-regular tracking-[-4%]'>{block?.topText}</p>
 
@@ -400,14 +400,14 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
         <div className='flex flex-col sm:flex-row gap-[15px] sm:gap-[30px] items-center justify-center lg:justify-start mt-[20px]'>
           <SavedByLogo className='w-[146px] h-[46px]' color='#0095EC' />
           <div className='flex flex-col gap-[5px] items-center sm:items-start'>
-            <p className='text-desktop-p2 font-riforma-bold leading-[110%] tracking-[-3%]'>IS RATED 5 STARTS ON SHOPIFY</p>
+            <p className='text-desktop-p2 font-riforma-bold leading-[110%] tracking-[-3%]'>IS RATED 5 STARS ON SHOPIFY</p>
             <p className='flex items-center text-desktop-p2 font-riforma-regular leading-[110%] tracking-[-3%]'>5.0&nbsp;<span><Star/></span>&nbsp;&nbsp;across 55 reviews</p>
           </div>
         </div>
 
       </div>
 
-      <div className='relative w-full h-full pb-[20vw] xs:pb-[15vw] md:pb-[5vw] lg:pb-0'>
+      <div className='relative w-full h-full pb-[20vw] xs:pb-[15vw] md:pb-[5vw] lg:pb-0 lg:max-w-[1199px] lg:justify-self-end'>
         <div className="w-[calc(100%+80px)] -translate-x-[40px] xs:w-[calc(100%+40px)] xs:-translate-x-[20px] sm:w-[calc(100%+80px)] sm:-translate-x-[40px] lg:translate-x-0 lg:w-full h-full aspect-[1019/850]"
         style={{
           WebkitMask: "linear-gradient(to top, transparent 0%, black 10%)",

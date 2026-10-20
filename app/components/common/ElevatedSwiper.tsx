@@ -138,6 +138,14 @@ type Anim =
   | { kind: 'spring'; t0: number; target: number; A: number; B: number; omega: number; notified: boolean }
   | { kind: 'ease'; t0: number; from: number; target: number; dur: number; ease: (t: number) => number; notified: boolean }
 
+/** Imperative controls, available through the `controlsRef` prop. */
+export interface SwiperControls {
+  /** Slide forward by one card (rapid calls queue up, each moves one more card) */
+  next: () => void
+  /** Slide back by one card */
+  prev: () => void
+}
+
 interface ElevatedSwiperProps {
   /** Plain elements (NOT <SwiperSlide>). Give each one its own width, e.g. className="w-[320px]". */
   children: React.ReactNode
@@ -176,6 +184,10 @@ interface ElevatedSwiperProps {
   onInteractEnd?: () => void
   /** Override any speed/behaviour value, see CarouselConfig */
   config?: Partial<CarouselConfig>
+  /** Receives `{ next, prev }` so external UI (e.g. <SwiperArrows>) can drive the carousel */
+  controlsRef?: React.MutableRefObject<SwiperControls | null>
+  /** Fires once when the intro (scroll-in spin + fade) has finished. Fires right after layout if there is no intro. */
+  onIntroComplete?: () => void
 }
 
 export default function ElevatedSwiper({
@@ -196,6 +208,8 @@ export default function ElevatedSwiper({
   onInteractStart,
   onInteractEnd,
   config,
+  controlsRef,
+  onIntroComplete,
 }: ElevatedSwiperProps) {
   // stable identity so memoized cards can skip re-rendering
   const items = useMemo(() => React.Children.toArray(children), [children])
@@ -213,11 +227,11 @@ export default function ElevatedSwiper({
   // latest props, readable from long-lived closures
   const cfg = useRef({
     n, gap, copies, initialSlide, dragRatio, autoplay, autoplayDelay, introSpin,
-    introFade, activateWhileScrolling, items, onActivate, onActiveChange, onSettle, onInteractStart, onInteractEnd, conf,
+    introFade, activateWhileScrolling, items, onActivate, onActiveChange, onSettle, onInteractStart, onInteractEnd, conf, onIntroComplete,
   })
   cfg.current = {
     n, gap, copies, initialSlide, dragRatio, autoplay, autoplayDelay, introSpin,
-    introFade, activateWhileScrolling, items, onActivate, onActiveChange, onSettle, onInteractStart, onInteractEnd, conf,
+    introFade, activateWhileScrolling, items, onActivate, onActiveChange, onSettle, onInteractStart, onInteractEnd, conf, onIntroComplete,
   }
 
 
@@ -345,7 +359,7 @@ export default function ElevatedSwiper({
     const root = rootRef.current
     if (!root) return
     if (on) root.setAttribute('data-intro', 'true')
-    else root.removeAttribute('data-intro')
+    else { root.removeAttribute('data-intro'); cfg.current.onIntroComplete?.() }
     root.style.cursor = on ? '' : 'grab'
     if (!on && cfg.current.activateWhileScrolling) activate(S.closest)
   }
@@ -555,6 +569,25 @@ export default function ElevatedSwiper({
     startEase(c + Math.round((S.pos - c) / Ptot) * Ptot, clickDuration, clickEase)
   }
 
+  /**
+   * Moves exactly one card per call, even when spammed: every call adds one card to where the
+   * carousel is already heading. The first call (at rest) uses the normal autoplay ease; calls
+   * made mid-move switch to a spring that keeps the live position AND velocity, so there is no
+   * ease-in restart (that is what made spam creep a few px per click) and it just keeps
+   * accelerating toward the further target.
+   */
+  const go = (dir: 1 | -1) => {
+    if (!S.layout.centers.length || S.drag || S.intro) return
+    if (S.timer) { clearTimeout(S.timer); S.timer = 0 }
+    if (S.anim) {
+      startAnim(g(nearestK(S.anim.target) + dir), S.vel, cfg.current.conf.snapSpeed + 3)
+    } else {
+      const { autoplayDuration, autoplayEase } = cfg.current.conf
+      startEase(g(nearestK(S.pos) + dir), autoplayDuration, autoplayEase)
+    }
+    scheduleAuto()
+  }
+
   /* ---------------- autoplay ---------------- */
   const scheduleAuto = () => {
     if (S.timer) clearTimeout(S.timer)
@@ -656,7 +689,7 @@ export default function ElevatedSwiper({
     }
     render()
     // report the starting card (with an intro spin, it settles at the end of the spin instead)
-    if (justInited && !S.introPending) emitSettle()
+    if (justInited && !S.introPending) { emitSettle(); cfg.current.onIntroComplete?.() }
   }
 
   useIsoLayoutEffect(() => {
@@ -670,6 +703,13 @@ export default function ElevatedSwiper({
     return () => ro.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [copies, n, gap])
+
+  useEffect(() => {
+    if (!controlsRef) return
+    controlsRef.current = { next: () => go(1), prev: () => go(-1) }
+    return () => { controlsRef.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlsRef])
 
   useEffect(() => () => {
     if (S.raf) cancelAnimationFrame(S.raf)

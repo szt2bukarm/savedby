@@ -1,5 +1,5 @@
 "use client"
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import type { NumberedCardsBlockProps } from '@/types/sanity'
@@ -8,7 +8,9 @@ import ElevatedSwiper, {
   useActiveCard,
   eases,
   type ActiveCardInfo,
+  type SwiperControls,
 } from '@/app/components/common/ElevatedSwiper'
+import SwiperArrows from '@/app/components/common/SwiperArrows'
 
 import { animateSlotMachine } from '@/app/utils/animations'
 
@@ -58,6 +60,8 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
 
   const { card, bind } = useActiveCard()
   const last = useRef<ActiveCardInfo | null>(null)
+  const controlsRef = useRef<SwiperControls | null>(null)
+  const [introDone, setIntroDone] = useState(false)
   const sectionRef = useRef<HTMLElement>(null)
   const activeNumberRef = useRef<HTMLElement | null>(null)
   const lastValuesRef = useRef<string[]>([])
@@ -170,6 +174,7 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
         autoplayDelay={3000}
         introSpin={cards.length}
         introFade
+        controlsRef={controlsRef} onIntroComplete={() => setIntroDone(true)}
         activateWhileScrolling={false}
         config={{
           autoplayDuration: 700,
@@ -211,6 +216,7 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
           </div>
         ))}
       </ElevatedSwiper>
+      <SwiperArrows visible={introDone} onPrev={() => controlsRef.current?.prev()} onNext={() => controlsRef.current?.next()} />
     </section>
   )
 }

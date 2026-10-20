@@ -6,6 +6,8 @@ import SanityImage from '../common/SanityImage'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import { useRef } from 'react'
+import type { Swiper as SwiperType } from 'swiper'
+import SwiperArrows from '../common/SwiperArrows'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { ScrollTrigger } from 'gsap/all'
@@ -43,6 +45,7 @@ const Arrow = ({className} : {className:string}) => {
 export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
   const spacingClasses = getSpacingClasses(block?.spacing);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const swiperRef = useRef<SwiperType | null>(null);
 
   const riveFile = useRivFile();
   const { rive, canvas, container, RiveComponent } = useRive(riveFile ? {
@@ -107,6 +110,7 @@ export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
       )}
       <div className="relative w-full z-10 group">
         <Swiper
+          onSwiper={(sw) => { swiperRef.current = sw }}
           spaceBetween={10}
           slidesPerView="auto"
           className="w-full !overflow-visible cursor-grab"
@@ -141,6 +145,7 @@ export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
           ))}
         </Swiper>
       </div>
+      <SwiperArrows className="relative z-10 pt-[50px]" onPrev={() => swiperRef.current?.slidePrev()} onNext={() => swiperRef.current?.slideNext()} />
     </section>
   )
 }

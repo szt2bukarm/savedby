@@ -1,5 +1,5 @@
 "use client"
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { useRive, useViewModelInstanceFont, decodeFont } from '@rive-app/react-webgl2'
@@ -13,7 +13,9 @@ import ElevatedSwiper, {
   useActiveCard,
   eases,
   type ActiveCardInfo,
+  type SwiperControls,
 } from '@/app/components/common/ElevatedSwiper'
+import SwiperArrows from '@/app/components/common/SwiperArrows'
 import SectionHeading from '../common/SectionHeading'
 
 const getFonts = getRiveFonts
@@ -65,6 +67,8 @@ export default function FeatureCards({ block }: FeatureCardsBlockProps) {
 
   const { card, bind } = useActiveCard()
   const last = useRef<ActiveCardInfo | null>(null)
+  const controlsRef = useRef<SwiperControls | null>(null)
+  const [introDone, setIntroDone] = useState(false)
 
   useGSAP(
     () => {
@@ -157,6 +161,7 @@ export default function FeatureCards({ block }: FeatureCardsBlockProps) {
         config={{
           autoplayDuration: 700,
         }}
+        controlsRef={controlsRef} onIntroComplete={() => setIntroDone(true)}
         {...bind}
       >
         {cards.map((card, i) => (
@@ -188,6 +193,7 @@ export default function FeatureCards({ block }: FeatureCardsBlockProps) {
           </div>
         ))}
       </ElevatedSwiper>
+      <SwiperArrows visible={introDone} onPrev={() => controlsRef.current?.prev()} onNext={() => controlsRef.current?.next()} />
     </section>
   )
 }

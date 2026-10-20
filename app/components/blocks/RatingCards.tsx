@@ -2,7 +2,9 @@
 import { getSpacingClasses } from '@/app/utils/spacing'
 import type { RatingCardsBlockProps } from '@/types/sanity'
 import SectionHeading from '../common/SectionHeading';
-import ElevatedSwiper from '../common/ElevatedSwiper';
+import { useRef, useState } from 'react';
+import ElevatedSwiper, { type SwiperControls } from '../common/ElevatedSwiper';
+import SwiperArrows from '../common/SwiperArrows';
 
 const Star = ({ className }: { className: string }) => {
   return (
@@ -15,12 +17,14 @@ const Star = ({ className }: { className: string }) => {
 export default function RatingCards({ block }: RatingCardsBlockProps) {
   const spacingClasses = getSpacingClasses(block?.spacing);
   const cards = block?.ratings ?? []
+  const controlsRef = useRef<SwiperControls | null>(null)
+  const [introDone, setIntroDone] = useState(false)
 
   return (
     <section className={`w-full ${spacingClasses} overflow-x-clip`}>
       <SectionHeading>{block?.heading}</SectionHeading>
 
-            <ElevatedSwiper initialSlide={cards.length > 1 ? 1 : 0} autoplay autoplayDelay={10000} introFade introSpin={cards.length}>
+            <ElevatedSwiper initialSlide={cards.length > 1 ? 1 : 0} autoplay autoplayDelay={10000} introFade introSpin={cards.length} controlsRef={controlsRef} onIntroComplete={() => setIntroDone(true)}>
               {cards.map((card, i) => (
                 <div key={card._key || i} style={{ width: 'auto', height: 'auto' }}>
                   <div className="card-inner w-[250px] h-[250px] sm:w-[325px] lg:w-[450px] sm:h-[325px] flex flex-col justify-between px-[15px] py-[20px] sm:px-[20px] sm:py-[30px] bg-darkbg rounded-[10px]">
@@ -36,6 +40,7 @@ export default function RatingCards({ block }: RatingCardsBlockProps) {
                 </div>
               ))}
             </ElevatedSwiper>
+      <SwiperArrows visible={introDone} onPrev={() => controlsRef.current?.prev()} onNext={() => controlsRef.current?.next()} />
     </section>
   )
 }
