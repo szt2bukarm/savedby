@@ -133,16 +133,18 @@ export default async function RootLayout({
           />
           <link
             rel="preload"
-            href="/assets/door_blue.png"
+            href="/assets/door_blue.webp"
             as="image"
             type="image/webp"
+            crossOrigin="anonymous"
             fetchPriority="high"
           />
           <link
             rel="preload"
-            href="/assets/door_red.png"
+            href="/assets/door.webp"
             as="image"
             type="image/webp"
+            crossOrigin="anonymous"
             fetchPriority="high"
           />
           {jsonLdData && (

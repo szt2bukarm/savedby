@@ -1,5 +1,5 @@
 "use client"
-import { useAppContext } from '@/app/AppContext';
+import { useSetNavColor } from '@/app/AppContext';
 import type { NavColorChangeTriggerBlockProps } from '@/types/sanity'
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -9,7 +9,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 export default function NavColorChangeTrigger({ block }: NavColorChangeTriggerBlockProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {setNavColor} = useAppContext();
+  const setNavColor = useSetNavColor();
 
   useGSAP(() => {
     if (!ref.current || !block?.to || !block?.from) return;

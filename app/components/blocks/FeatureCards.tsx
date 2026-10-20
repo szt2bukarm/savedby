@@ -4,6 +4,7 @@ import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
 import { useRive, useViewModelInstanceFont, decodeFont } from '@rive-app/react-webgl2'
 import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize'
+import { useRivFile, getRiveFonts } from '@/app/utils/riveAssets';
 
 import type { FeatureCardsBlockProps } from '@/types/sanity'
 import { getSpacingClasses } from '@/app/utils/spacing'
@@ -15,32 +16,19 @@ import ElevatedSwiper, {
 } from '@/app/components/common/ElevatedSwiper'
 import SectionHeading from '../common/SectionHeading'
 
-const loadFont = async (url: string) =>
-  decodeFont(new Uint8Array(await (await fetch(url)).arrayBuffer()))
-
-let fontsPromise: Promise<[Awaited<ReturnType<typeof decodeFont>>, Awaited<ReturnType<typeof decodeFont>>]> | null = null
-const getFonts = () => {
-  if (!fontsPromise) {
-    fontsPromise = (async () => {
-      const regular = await loadFont('/fonts/RiformaLLSub-Regular.ttf')
-      const bold = await loadFont('/fonts/RiformaLLSub-Bold.ttf')
-      return [regular, bold] as [typeof regular, typeof bold]
-    })()
-    fontsPromise.catch(() => { fontsPromise = null })
-  }
-  return fontsPromise
-}
+const getFonts = getRiveFonts
 
 const CardRive = ({ artboard }: { artboard: string }) => {
-  const { rive, canvas, container, RiveComponent } = useRive({
-    src: '/SavedBy.riv',
+  const riveFile = useRivFile();
+  const { rive, canvas, container, RiveComponent } = useRive(riveFile ? {
+    riveFile,
     artboard,
     autoplay: true,
     autoBind: true,
     shouldDisableRiveListeners: true,
-  }, RIVE_GATED)
+  } : undefined, RIVE_GATED)
   useRiveResize(rive, canvas, container,1.5)
-  useRiveRenderGate(rive, canvas, '[data-k]')
+  useRiveRenderGate(rive, canvas, '[data-k]', '100px', 2)
 
   const fontProp = useViewModelInstanceFont('font', rive?.viewModelInstance)
   const fontBoldProp = useViewModelInstanceFont('boldFont', rive?.viewModelInstance)

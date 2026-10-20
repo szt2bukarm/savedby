@@ -1,6 +1,6 @@
 "use client"
-import { useEffect, useRef, useState } from "react"
-import { useAppContext } from "@/app/AppContext"
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useAppContext, useNavColor } from "@/app/AppContext"
 import Button from "../common/Button"
 import SavedByLogo from "./SavedByLogo"
 import { useGSAP } from "@gsap/react"
@@ -29,7 +29,7 @@ const isBrandOrange = (color: string) => {
 }
 
 const MASK = (() => {
-    const steps = 16
+    const steps = 8
     const stops = Array.from({ length: steps + 1 }, (_, i) => {
         const t = i / steps
         const alpha = 1 - t * t * (3 - 2 * t)
@@ -120,7 +120,7 @@ const SHOWN_CLIP = "inset(0% 0% 0% 0%)"
 
 const SLIDE_DISTANCE = 50
 
-const NavDropdown = ({ items, direction, all, onClosed }: { items: NavDropdown | null, direction: 1 | -1, all: NavDropdown[], onClosed: () => void }) => {
+const NavDropdown = memo(function NavDropdown({ items, direction, all, onClosed }: { items: NavDropdown | null, direction: 1 | -1, all: NavDropdown[], onClosed: () => void }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const listRef = useRef<HTMLDivElement>(null);
     const isOpen = useRef(false);
@@ -228,11 +228,12 @@ const NavDropdown = ({ items, direction, all, onClosed }: { items: NavDropdown |
             </div>
         </div>
     )
-}
+})
 
 export default function Nav({ data }: { data?: NavData }) {
 
-    const {navColor, navHidden} = useAppContext();
+    const {navHidden} = useAppContext();
+    const navColor = useNavColor();
     const gradientRef = useRef<HTMLDivElement>(null);
     const [isOrange, setIsOrange] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState<NavDropdown | null>(null);
@@ -279,12 +280,22 @@ export default function Nav({ data }: { data?: NavData }) {
             el.style.backgroundColor = color;
         };
 
-        const schedule = () => { if (!raf) raf = requestAnimationFrame(sample); };
+        // elementsFromPoint + getComputedStyle force style/layout work, so on scroll sample at
+        // most every 80ms instead of every frame (the colour only changes at block boundaries)
+        let lastRun = 0;
+        const schedule = () => {
+            if (raf) return;
+            raf = requestAnimationFrame((now) => {
+                if (now - lastRun < 80) { raf = 0; return; }
+                lastRun = now;
+                sample();
+            });
+        };
         sample();
         window.addEventListener("scroll", schedule, { passive: true });
         window.addEventListener("resize", schedule);
         // catches Lenis/transform-based scrolling and layout changes
-        const interval = window.setInterval(schedule, 100);
+        const interval = window.setInterval(schedule, 150);
         return () => {
             window.removeEventListener("scroll", schedule);
             window.removeEventListener("resize", schedule);
@@ -292,6 +303,12 @@ export default function Nav({ data }: { data?: NavData }) {
             if (raf) cancelAnimationFrame(raf);
         };
     }, [navColor]);
+
+    const handleDropdownClosed = useCallback(() => setDropdownVisible(false), []);
+    const allDropdowns = useMemo(
+        () => (data?.dropdowns ?? []).filter((d): d is NavDropdown => d._type === 'navDropdown'),
+        [data?.dropdowns]
+    );
 
     const effectiveNavColor = (activeDropdown || dropdownVisible) ? 'light' : navColor;
 
@@ -327,7 +344,7 @@ export default function Nav({ data }: { data?: NavData }) {
                 )}
             </div>
 
-            <NavDropdown items={activeDropdown} direction={direction} onClosed={() => setDropdownVisible(false)} all={(data?.dropdowns ?? []).filter((d): d is NavDropdown => d._type === 'navDropdown')} />
+            <NavDropdown items={activeDropdown} direction={direction} onClosed={handleDropdownClosed} all={allDropdowns} />
             <div className={`fixed top-0 left-0 w-screen h-screen bg-black/50 z-5 pointer-events-none transition-opacity duration-500 ${dropdownVisible ? 'opacity-100' : 'opacity-0'}`} />
         </nav>
     )

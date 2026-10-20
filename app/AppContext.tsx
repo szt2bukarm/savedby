@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
 
 type AppContextType = {
@@ -11,8 +11,6 @@ type AppContextType = {
   setIsAppLoaded: (loaded: boolean) => void
   isSceneReady: boolean
   setIsSceneReady: (ready: boolean) => void
-  navColor: string
-  setNavColor: (color: string) => void
   navHidden: boolean
   setNavHidden: (hidden: boolean) => void
   isMobile: boolean
@@ -20,6 +18,17 @@ type AppContextType = {
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
+
+const NavColorContext = createContext<string>('light')
+const SetNavColorContext = createContext<(color: string) => void>(() => {})
+
+export function useNavColor() {
+  return useContext(NavColorContext)
+}
+
+export function useSetNavColor() {
+  return useContext(SetNavColorContext)
+}
 
 export function useAppContext() {
   const context = useContext(AppContext)
@@ -55,7 +64,7 @@ export function AppProvider({
     setIsMobile(checkIfMobile())
   }, [])
 
-  const toggleNav = () => setIsNavOpen(prev => !prev)
+  const toggleNav = useCallback(() => setIsNavOpen(prev => !prev), [])
 
   useEffect(() => {
     setIsNavOpen(false)
@@ -80,24 +89,28 @@ export function AppProvider({
     }
   }, [isNavOpen])
 
+  const value = useMemo(
+    () => ({
+      isNavOpen,
+      setIsNavOpen,
+      toggleNav,
+      isAppLoaded,
+      setIsAppLoaded,
+      isSceneReady,
+      setIsSceneReady,
+      isMobile,
+      isDraftMode,
+      navHidden,
+      setNavHidden,
+    }),
+    [isNavOpen, toggleNav, isAppLoaded, isSceneReady, isMobile, isDraftMode, navHidden]
+  )
+
   return (
-    <AppContext.Provider
-      value={{
-        isNavOpen,
-        setIsNavOpen,
-        toggleNav,
-        isAppLoaded,
-        setIsAppLoaded,
-        isSceneReady,
-        setIsSceneReady,
-        isMobile,
-        isDraftMode,
-        navColor,
-        setNavColor,
-        navHidden,
-        setNavHidden
-      }}>
-      {children}
+    <AppContext.Provider value={value}>
+      <SetNavColorContext.Provider value={setNavColor}>
+        <NavColorContext.Provider value={navColor}>{children}</NavColorContext.Provider>
+      </SetNavColorContext.Provider>
     </AppContext.Provider>
   )
 }

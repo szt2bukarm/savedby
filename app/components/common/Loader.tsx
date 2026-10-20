@@ -4,10 +4,8 @@ import { useEffect, useState } from 'react'
 import gsap from 'gsap'
 import { useGLTF, useTexture } from '@react-three/drei'
 import { useAppContext } from '@/app/AppContext'
+import { loadRivFile, getRiveFonts } from '@/app/utils/riveAssets'
 
-// GLBs + door textures are NOT fetched here: drei's preload below fetches *and*
-// parses them into its cache, so the Canvas doesn't redo the work.
-const FETCH_ASSETS = ['/SavedBy.riv']
 const IMAGE_ASSETS = [
   '/assets/c1.jpg',
   '/assets/c2.jpg',
@@ -17,8 +15,8 @@ const IMAGE_ASSETS = [
 const MAX_WAIT_MS = 15000
 const FADE_MS = 600
 
-const loadFetch = (url: string) =>
-  fetch(url).then((r) => r.arrayBuffer()).catch(() => null)
+const loadRiveAssets = () =>
+  Promise.all([loadRivFile(), getRiveFonts()]).catch(() => null)
 
 const loadImage = (url: string) =>
   new Promise<void>((resolve) => {
@@ -48,13 +46,12 @@ export default function Loader() {
     if (isAppLoaded) return
     let cancelled = false
 
-    // Kick off GLB parsing + texture loading immediately, in parallel with everything else
     useGLTF.preload('/gltf/box.glb')
     useGLTF.preload('/gltf/base.glb')
-    useTexture.preload(['/assets/door.png', '/assets/door_blue.png'])
+    useTexture.preload(['/assets/door.webp', '/assets/door_blue.webp'])
 
     const tasks: Promise<unknown>[] = [
-      ...FETCH_ASSETS.map(loadFetch),
+      loadRiveAssets(),
       ...IMAGE_ASSETS.map(loadImage),
       document.fonts.ready,
     ]
@@ -86,7 +83,6 @@ export default function Loader() {
     setIsAppLoaded(true)
   }, [assetsLoaded, isSceneReady, isAppLoaded, setIsAppLoaded])
 
-  // Unmount the overlay once the fade-out has finished
   useEffect(() => {
     if (!isAppLoaded) return
     const t = setTimeout(() => setRemoved(true), FADE_MS)

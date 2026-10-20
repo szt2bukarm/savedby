@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useAppContext } from '@/app/AppContext'
 import type { Rive } from '@rive-app/react-webgl2'
 
 /**
@@ -50,8 +51,11 @@ function enqueuePrime(job: () => Promise<void>) {
  * but then jumps ahead). Zeroing it makes the first resumed frame have elapsedTime === 0, so
  * animations continue from the frozen state.
  */
-const resume = (rive: Rive) => {
-  ;(rive as unknown as { lastRenderTime: number }).lastRenderTime = 0
+const resume = (rive: Rive, skipSeconds = 0) => {
+  // Rive computes elapsed = now - lastRenderTime on the first frame, so back-dating it makes
+  // that frame advance the animation by `skipSeconds` (0 = continue from the frozen state).
+  ;(rive as unknown as { lastRenderTime: number }).lastRenderTime =
+    skipSeconds > 0 ? performance.now() - skipSeconds * 1000 : 0
   rive.startRendering()
 }
 
@@ -60,7 +64,12 @@ export function useRiveRenderGate(
   canvas: HTMLCanvasElement | null,
   itemSelector?: string,
   rootMargin = '100px',
+  skipSeconds = 0, // the first rendered frame starts this many seconds into the animation
 ) {
+  const { isAppLoaded } = useAppContext()
+  const appLoadedRef = useRef(isAppLoaded)
+  appLoadedRef.current = isAppLoaded
+
   useEffect(() => {
     if (!rive || !canvas) return
     const item = itemSelector ? canvas.closest<HTMLElement>(itemSelector) : null
@@ -70,6 +79,14 @@ export function useRiveRenderGate(
     let rendering: boolean | null = null
     let drawn = false // has produced at least one frame (so a held canvas isn't blank)
     let holdTimer: ReturnType<typeof setTimeout> | undefined
+    // the skip applies to this instance's very first frame (primed, held or live), exactly once,
+    // so the loaded initial state already sits `skipSeconds` into the animation
+    let skipped = false
+    const takeSkip = () => {
+      if (skipped) return 0
+      skipped = true
+      return skipSeconds
+    }
 
     const update = () => {
       const visible = intersecting && item?.style.visibility !== 'hidden'
@@ -82,8 +99,9 @@ export function useRiveRenderGate(
       if (should && !held) drawn = true
       if (should === rendering) return
       rendering = should
-      if (should) resume(rive)
-      else rive.stopRendering()
+      if (should) {
+        resume(rive, takeSkip())
+      } else rive.stopRendering()
     }
 
     const io = new IntersectionObserver(([entry]) => {
@@ -99,8 +117,10 @@ export function useRiveRenderGate(
 
     let cancelled = false
     enqueuePrime(async () => {
+      // don't compete with the hero scene / loader: prime only once the app has loaded
+      while (!cancelled && !appLoadedRef.current) await new Promise((r) => setTimeout(r, 250))
       if (cancelled || drawn || rendering) return
-      resume(rive)
+      resume(rive, takeSkip())
       await nextFrames(3)
       if (cancelled) return
       drawn = true
@@ -114,7 +134,7 @@ export function useRiveRenderGate(
       mo?.disconnect()
       mo2?.disconnect()
     }
-  }, [rive, canvas, itemSelector, rootMargin])
+  }, [rive, canvas, itemSelector, rootMargin, skipSeconds])
 }
 
 /**

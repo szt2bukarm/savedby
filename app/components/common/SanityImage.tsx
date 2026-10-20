@@ -1,10 +1,7 @@
 'use client'
 
-import Image from 'next/image'
+import Image, { type ImageLoaderProps } from 'next/image'
 import { urlForImage } from '@/sanity/lib/image'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-ScrollTrigger.config({ ignoreMobileResize: true })
 
 export interface SanityImageAsset {
   _ref?: string
@@ -12,10 +9,7 @@ export interface SanityImageAsset {
   url?: string
   metadata?: {
     lqip?: string
-    dimensions?: {
-      width: number
-      height: number
-    }
+    dimensions?: { width: number; height: number }
   }
 }
 
@@ -28,13 +22,12 @@ export interface SanityImageSource {
 }
 
 type SanityImageProps = {
-  asset?: SanityImageAsset | SanityImageSource | any
-  image?: SanityImageSource | any
-  width?: number
-  height?: number
-  hotspot?: { x: number; y: number; width: number; height: number }
-  crop?: { top: number; bottom: number; left: number; right: number }
+  /** Sanity image object, or an `{ image, alt }` wrapper */
+  image?: any
+  /** Alternative to `image` (legacy) */
+  asset?: any
   alt?: string
+  /** Responsive `sizes` attribute. Always set this for anything not full-bleed. */
   sizes?: string
   priority?: boolean
   quality?: number
@@ -46,93 +39,60 @@ type SanityImageProps = {
   ref?: React.Ref<HTMLImageElement>
 }
 
+const DEFAULT_QUALITY = 75
+
 export default function SanityImage({
-  ref,
-  asset: rawAsset,
   image,
-  width: propWidth,
-  height: propHeight,
-  hotspot: rawHotspot,
-  crop: rawCrop,
-  alt: rawAlt,
+  asset: rawAsset,
+  alt,
+  sizes = '100vw',
+  quality = DEFAULT_QUALITY,
   noBlur,
-  quality,
-  sizes,
-  priority,
-  className,
-  style,
-  loading,
   fill,
+  ...rest
 }: SanityImageProps) {
-  // Support passing `{ image, alt }` wrapper objects (e.g. Sanity imageType), or direct image/asset
-  const resolvedImage =
-    image && typeof image === 'object' && 'image' in image && (image as any).image
-      ? (image as any).image
-      : image
-
-  const resolvedAsset =
-    rawAsset && typeof rawAsset === 'object' && 'image' in rawAsset && (rawAsset as any).image
-      ? (rawAsset as any).image
-      : rawAsset
-
-  const isImageWrapper =
-    resolvedAsset &&
-    typeof resolvedAsset === 'object' &&
-    'asset' in resolvedAsset &&
-    Boolean((resolvedAsset as SanityImageSource).asset)
-
-  const imageSource: SanityImageSource | undefined =
-    resolvedImage || (isImageWrapper ? (resolvedAsset as SanityImageSource) : undefined)
-
-  const asset: SanityImageAsset | undefined =
-    imageSource?.asset || (resolvedAsset as SanityImageAsset)
-  const hotspot = rawHotspot || imageSource?.hotspot
-  const crop = rawCrop || imageSource?.crop
-  const alt = rawAlt || (image as any)?.alt || (rawAsset as any)?.alt || imageSource?.alt
-
-  let width = propWidth || asset?.metadata?.dimensions?.width || 1
-  let height = propHeight || asset?.metadata?.dimensions?.height || 1
-
-  if (crop && !propWidth && !propHeight) {
-    width = Math.floor(width * (1 - ((crop?.right || 0) + (crop?.left || 0))))
-    height = Math.floor(height * (1 - ((crop?.top || 0) + (crop?.bottom || 0))))
-  }
+  // Unwrap `{ image, alt }` wrappers
+  const input = image ?? rawAsset
+  const source: SanityImageSource | undefined = input?.image ?? input
+  const asset = source?.asset ?? (input as SanityImageAsset | undefined)
+  const { hotspot, crop } = source ?? {}
 
   const src = urlForImage({ asset, hotspot, crop })?.url() || asset?.url
   if (!src) return null
 
-  const sanityLoader = ({ src: loaderSrc, width: loaderWidth, quality: loaderQuality }: { src: string, width: number, quality?: number }) => {
-    if (loaderSrc.includes('cdn.sanity.io')) {
-      const url = new URL(loaderSrc)
-      url.searchParams.set('w', loaderWidth.toString())
-      if (loaderQuality) url.searchParams.set('q', loaderQuality.toString())
-      return url.toString()
-    }
-    return loaderSrc
+  // Intrinsic dimensions (after crop) – used for aspect ratio and as an upper bound
+  const dims = asset?.metadata?.dimensions
+  const width = Math.floor((dims?.width ?? 1) * (1 - ((crop?.left ?? 0) + (crop?.right ?? 0))))
+  const height = Math.floor((dims?.height ?? 1) * (1 - ((crop?.top ?? 0) + (crop?.bottom ?? 0))))
+  const maxWidth = dims ? width : undefined
+
+  // Let Sanity's CDN do resizing; never upscale beyond the original
+  const loader = ({ src, width: w, quality: q }: ImageLoaderProps) => {
+    if (!src.includes('cdn.sanity.io')) return src
+    const url = new URL(src)
+    url.searchParams.set('w', String(maxWidth ? Math.min(w, maxWidth) : w))
+    url.searchParams.set('q', String(q ?? DEFAULT_QUALITY))
+    url.searchParams.set('fit', 'max')
+    url.searchParams.set('auto', 'format')
+    return url.toString()
   }
+
+  const lqip = noBlur ? undefined : asset?.metadata?.lqip
 
   return (
     <Image
-      loader={sanityLoader}
-      ref={ref}
-      alt={alt || ''}
+      {...rest}
+      loader={loader}
       src={src}
-      placeholder={noBlur || !asset.metadata?.lqip ? 'empty' : 'blur'}
-      blurDataURL={noBlur ? undefined : asset.metadata?.lqip}
-      sizes={sizes || '100vw'}
-      quality={quality || 90}
-      width={fill ? undefined : width}
-      height={fill ? undefined : height}
-      fill={fill}
-      priority={priority}
-      loading={loading}
-      fetchPriority="high"
-      className={className}
+      alt={alt ?? input?.alt ?? source?.alt ?? ''}
+      sizes={sizes}
+      quality={quality}
+      {...(fill ? { fill: true } : { width, height })}
+      placeholder={lqip ? 'blur' : 'empty'}
+      blurDataURL={lqip}
       style={{
-        objectPosition: hotspot
-          ? `${hotspot.x * 100}% ${hotspot.y * 100}%`
-          : undefined,
-        ...style,
+        objectPosition: hotspot ? `${hotspot.x * 100}% ${hotspot.y * 100}%` : undefined,
+        ...rest.style,
       }}
     />
   )

@@ -12,7 +12,7 @@ import { HeroSceneContext } from './HeroSceneContext'
  * is mounted, so returning to "/" never reloads models or recompiles shaders.
  */
 export default function HeroSceneProvider({ children }: { children: React.ReactNode }) {
-  const { setIsSceneReady } = useAppContext()
+  const { setIsSceneReady, isAppLoaded } = useAppContext()
   const holderRef = useRef<HTMLDivElement>(null)
   const canvasWrapRef = useRef<HTMLDivElement>(null)
   const tokenCounter = useRef(0)
@@ -83,7 +83,7 @@ export default function HeroSceneProvider({ children }: { children: React.ReactN
               style={{ pointerEvents: 'none' }}
               className="pointer-events-none w-full h-[100dvh]"
             >
-              <HeroScenes wobbleEnabled={wobbleEnabled} mountToken={mountToken} onReady={onReady} />
+              <HeroScenes wobbleEnabled={wobbleEnabled} mountToken={mountToken} onReady={onReady} loadHighRes={isAppLoaded} />
             </Canvas>
           )}
         </div>

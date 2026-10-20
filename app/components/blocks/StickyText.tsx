@@ -2,10 +2,11 @@
 import { getSpacingClasses } from '@/app/utils/spacing'
 import type { StickyTextBlockProps } from '@/types/sanity'
 import { PortableTextComponents } from 'next-sanity';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useRive, useViewModelInstanceBoolean, Layout, Fit, Alignment } from '@rive-app/react-webgl2';
 import GradientRevealText from '../common/GradientRevealText';
 import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize';
+import { useRivFile } from '@/app/utils/riveAssets';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/all';
@@ -18,47 +19,54 @@ const PIN_PX_PER_ITEM = 500;
 // view model boolean: damaged = false, intact = true
 const BOX_STATE_PROP = 'toggleOn';
 
+const portableTextComponents: PortableTextComponents = {
+  block: {
+    normal: ({ children }) => (
+      <span className="text-mobile-h2 sm:text-tablet-h4 lg:text-desktop-h4 leading-[85%] tracking-[-4%] font-riforma-regular text-center text-black w-[90%] sm:w-[600px] lg:w-[800px] text-balance">
+        {children}
+      </span>
+    ),
+  },
+  marks: {
+    strong: ({ children }) => (
+      <strong className="font-riforma-bold font-bold">{children}</strong>
+    ),
+  },
+}
+
 export default function StickyText({ block }: StickyTextBlockProps) {
   const spacingClasses = getSpacingClasses(block?.spacing);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const textRefs = useRef<(HTMLElement | null)[]>([]);
   const items = block?.items || [];
-  const [activeIndex, setActiveIndex] = useState(0);
   const activeIndexRef = useRef(0);
 
-  const { rive, canvas, container, RiveComponent } = useRive({
-    src: '/SavedBy.riv',
+  const riveFile = useRivFile();
+  const { rive, canvas, container, RiveComponent } = useRive(riveFile ? {
+    riveFile,
     artboard: 'Box Switch',
     stateMachines: 'State Machine 1',
     autoplay: true,
     autoBind: true,
     layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
-  }, RIVE_GATED);
+  } : undefined, RIVE_GATED);
   useRiveResize(rive, canvas, container);
   useRiveRenderGate(rive, canvas);
 
   const boxStateProp = useViewModelInstanceBoolean(BOX_STATE_PROP, rive?.viewModelInstance);
-  const activeBoxIcon = items[activeIndex]?.boxIcon === 'damaged' ? 'damaged' : 'intact';
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const boxStateRef = useRef(boxStateProp);
+  boxStateRef.current = boxStateProp;
+
+  const applyBoxState = (index: number) => {
+    boxStateRef.current?.setValue?.(itemsRef.current[index]?.boxIcon !== 'damaged');
+  };
 
   useEffect(() => {
-    if (boxStateProp?.setValue) boxStateProp.setValue(activeBoxIcon === 'intact');
-  }, [activeBoxIcon, boxStateProp]);
-
-  const portableTextComponents: PortableTextComponents = {
-    block: {
-      normal: ({ children }) => (
-        <span className="text-mobile-h2 sm:text-tablet-h4 lg:text-desktop-h4 leading-[85%] tracking-[-4%] font-riforma-regular text-center text-black w-[90%] sm:w-[600px] lg:w-[800px] text-balance">
-          {children}
-        </span>
-      ),
-    },
-    marks: {
-      strong: ({ children }) => (
-        <strong className="font-riforma-bold font-bold">{children}</strong>
-      ),
-    },
-  }
+    applyBoxState(activeIndexRef.current);
+  }, [boxStateProp]);
 
   useGSAP(() => {
     const els = textRefs.current.filter(Boolean) as HTMLElement[];
@@ -82,7 +90,7 @@ export default function StickyText({ block }: StickyTextBlockProps) {
           const idx = Math.min(items.length - 1, Math.floor(self.progress * items.length));
           if (idx !== activeIndexRef.current) {
             activeIndexRef.current = idx;
-            setActiveIndex(idx);
+            applyBoxState(idx);
           }
         },
       },

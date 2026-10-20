@@ -86,18 +86,20 @@ import GradientRevealText from '../common/GradientRevealText'
 import { useRive, useViewModelInstanceNumber, useViewModelInstanceTrigger, useViewModelInstanceFont, useViewModelInstanceImage, useViewModelInstanceBoolean, decodeFont, decodeImage } from '@rive-app/react-webgl2'
 import { urlForImage } from '@/sanity/lib/image'
 import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize'
+import { useRivFile, getRiveFonts } from '@/app/utils/riveAssets';
 
 type RiveGraphicProps = { activeIndex: number, isPinned: boolean, fillHeight?: boolean, storeImage?: any, productImage?: any }
 
 const RiveGraphic = ({ activeIndex, isPinned, fillHeight = false, storeImage, productImage }: RiveGraphicProps) => {
-  const { rive, canvas, container, RiveComponent } = useRive({
-    src: '/SavedBy.riv',
+  const riveFile = useRivFile();
+  const { rive, canvas, container, RiveComponent } = useRive(riveFile ? {
+    riveFile,
     artboard: 'Storytelling Artboard',
     stateMachines: 'State Machine 1',
     autoplay: !fillHeight,
     autoBind: true, 
     shouldDisableRiveListeners: true, 
-  }, RIVE_GATED);
+  } : undefined, RIVE_GATED);
   useRiveResize(rive, canvas, container);
   useRiveRenderGate(rive, canvas);
 
@@ -133,15 +135,9 @@ const RiveGraphic = ({ activeIndex, isPinned, fillHeight = false, storeImage, pr
 
       const loadFonts = async () => {
         try {
-          const regRes = await fetch('/fonts/RiformaLLSub-Regular.ttf');
-          const regBuf = await regRes.arrayBuffer();
-          const regDecoded = await decodeFont(new Uint8Array(regBuf));
-          fontProp.setValue(regDecoded);
-
-          const boldRes = await fetch('/fonts/RiformaLLSub-Bold.ttf');
-          const boldBuf = await boldRes.arrayBuffer();
-          const boldDecoded = await decodeFont(new Uint8Array(boldBuf));
-          fontBoldProp.setValue(boldDecoded);
+          const [regular, bold] = await getRiveFonts();
+          fontProp.setValue(regular);
+          fontBoldProp.setValue(bold);
         } catch (e) {
         }
       };
@@ -156,8 +152,8 @@ const RiveGraphic = ({ activeIndex, isPinned, fillHeight = false, storeImage, pr
     return () => { mountedRef.current = false; };
   }, []);
 
-  const storeImageUrl = storeImage?.asset?._ref ? urlForImage(storeImage)?.width(1600).url() : storeImage?.asset?.url;
-  const productImageUrl = productImage?.asset?._ref ? urlForImage(productImage)?.width(1600).url() : productImage?.asset?.url;
+  const storeImageUrl = storeImage?.asset?._ref ? urlForImage(storeImage)?.width(200).url() : storeImage?.asset?.url;
+  const productImageUrl = productImage?.asset?._ref ? urlForImage(productImage)?.width(200).url() : productImage?.asset?.url;
 
   const loadImage = (prop: any, url: string | undefined, loadedUrl: React.MutableRefObject<string | null>, label: string) => {
     if (!prop?.setValue || !url || loadedUrl.current === url) return;
@@ -248,7 +244,7 @@ const CustomerStoryScreen = ({
     delaysRef.current = [];
 
     // safety cleanup for any orphaned tweens
-    gsap.killTweensOf([bgRef.current, graphicBgRef.current, textRef.current, "[data-gsap='customerstory-heading']", "[data-gsap='customerstory-text']"]);
+    gsap.killTweensOf([bgRef.current, graphicBgRef.current, textRef.current, "[data-gsap='customerstory-heading']"]);
 
     // swap colors
     gsap.to(bgRef.current, {
@@ -279,10 +275,6 @@ const CustomerStoryScreen = ({
       duration: 0.2,
     })
 
-    gsap.set("[data-gsap='customerstory-text']", {
-      "--gradient-size": "120%",
-      "--gradient-position": "110% 110%",            
-    })
 
     // swap heading and color
     const safeSwap = contextSafe(() => {

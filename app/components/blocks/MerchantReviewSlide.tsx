@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 import GradientRevealText from '../common/GradientRevealText';
 import { useRive, useViewModelInstanceBoolean, Layout, Fit, Alignment } from '@rive-app/react-webgl2';
 import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize';
+import { useRivFile } from '@/app/utils/riveAssets';
 import { getSpacingClasses } from '@/app/utils/spacing';
 
 const Star = () => {
@@ -214,7 +215,7 @@ const EnableSavedbyBar = ({ enabled, setEnabled }: { enabled: boolean, setEnable
   },[enabled])
 
   return (
-    <div className='absolute bottom-0 left-1/2 -translate-x-1/2 w-[100%] sm:w-[90%] max-w-[520px] z-10'>
+    <div className='absolute bottom-0 lg:bottom-[50px] left-1/2 -translate-x-1/2 w-[100%] sm:w-[90%] max-w-[520px] z-10'>
       <canvas 
         ref={canvasRef} 
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] pointer-events-none" 
@@ -269,8 +270,9 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
     title: ""
   })
 
-  const { rive, canvas, container, RiveComponent } = useRive({
-    src: '/SavedBy.riv',
+  const riveFile = useRivFile();
+  const { rive, canvas, container, RiveComponent } = useRive(riveFile ? {
+    riveFile,
     artboard: 'Box Stack',
     stateMachines: 'State Machine 1',
     autoplay: true,
@@ -279,7 +281,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
       fit: Fit.Cover,
       alignment: Alignment.Center,
     }),
-  }, RIVE_GATED);
+  } : undefined, RIVE_GATED);
   useRiveResize(rive, canvas, container);
   useRiveRenderGate(rive, canvas);
 
@@ -357,7 +359,7 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
   if (!block?.ratings?.length) return null;
 
   return (
-    <section className={`${spacingClasses} relative w-full lg:min-h-[max(700px,80vh)] flex flex-col-reverse gap-[120px] lg:gap-0 lg:grid lg:grid-cols-[50%_50%] pl-[20px] pr-[20px] sm:pl-[40px] sm:pr-[40px] lg:pl-[60px] lg:pr-0! xl:pl-[110px]`}>
+    <section className={`${spacingClasses} relative w-full lg:min-h-[max(500px,60vh)] flex flex-col-reverse gap-[120px] lg:gap-0 lg:grid lg:grid-cols-[50%_50%] pl-[20px] pr-[20px] sm:pl-[40px] sm:pr-[40px] lg:pl-[60px] lg:pr-0! xl:pl-[110px]`}>
 
       <style>{`@keyframes review-ring-fill { to { stroke-dashoffset: 0; } }`}</style>
       <div className='hidden xl:flex flex-col gap-[25px] absolute top-1/2 -translate-y-1/2 left-[45px]'>
@@ -406,7 +408,12 @@ export default function MerchantReviewSlide({ block }: MerchantReviewSlideBlockP
       </div>
 
       <div className='relative w-full h-full pb-[20vw] xs:pb-[15vw] md:pb-[5vw] lg:pb-0'>
-        <div className="w-[calc(100%+80px)] -translate-x-[40px] xs:w-[calc(100%+40px)] xs:-translate-x-[20px] sm:w-[calc(100%+80px)] sm:-translate-x-[40px] lg:translate-x-0 lg:w-full h-full aspect-[1019/850]">
+        <div className="w-[calc(100%+80px)] -translate-x-[40px] xs:w-[calc(100%+40px)] xs:-translate-x-[20px] sm:w-[calc(100%+80px)] sm:-translate-x-[40px] lg:translate-x-0 lg:w-full h-full aspect-[1019/850]"
+        style={{
+          WebkitMask: "linear-gradient(to top, transparent 0%, black 10%)",
+          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 10%)",
+
+        }}>
           <RiveComponent className="w-full h-full " />
         </div>
         <EnableSavedbyBar enabled={enabled} setEnabled={setEnabled} />

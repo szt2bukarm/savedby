@@ -212,13 +212,14 @@ const Hero3DBox = ({
       }
     )
 
-     const posProxy = { y: 2, z: 0 };
+    const posProxy = { y: 2, z: 0, x:0 };
     gsap.fromTo(
       posProxy,
-      { y: 2, z: 0 },
+      { y: 2, z: 0, x:0 },
       {
         y: () => window.innerWidth < 768 ? -1.9 : -1.8,
         z: 1.5,
+        x: 0.025,
         ease: "linearSmoothEnd",
         immediateRender: false,
         scrollTrigger: {
@@ -229,6 +230,7 @@ const Hero3DBox = ({
           invalidateOnRefresh: true,
           onUpdate: () => {
             if (boxRef.current) {
+              boxRef.current.position.x = posProxy.x;
               boxRef.current.position.y = posProxy.y;
               boxRef.current.position.z = posProxy.z;
             }
@@ -243,7 +245,7 @@ const Hero3DBox = ({
 
     gsap.fromTo(
       posProxy,
-      { y: () => window.innerWidth < 768 ? -1.9 : -1.8, z: 1.5 },
+      { y: () => window.innerWidth < 768 ? -1.9 : -1.8, z: 1.5},
       {
         y: () => window.innerWidth < 768 ? -4.9 : -4.8,
         z: 1.5,
@@ -284,8 +286,7 @@ const Hero3DBox = ({
     )
   }, { dependencies: [stickersReady, mountToken], revertOnUpdate: true })
 
-  // While no hero is on the page, park the box in its intro start pose so the next
-  // visit never shows a stale pose for a frame (runs after the reverts above).
+  // reset box position and rotation when hero is not mounted
   useEffect(() => {
     if (mountToken || !boxRef.current) return
     boxRef.current.position.set(0, 7, 0)
@@ -322,14 +323,38 @@ const HighResModel = ({ url, onLoad }: { url: string, onLoad: (scene: THREE.Grou
   return null
 }
 
-const Hero3DBase = ({ mountToken }: { mountToken: number }) => {
-  const { scene: lowResScene } = useGLTF("/gltf/base.glb")
-  const [highResScene, setHighResScene] = useState<THREE.Group | null>(null)
-  const scene = highResScene || lowResScene
+const Hero3DBase = ({ mountToken, loadHighRes }: { mountToken: number; loadHighRes: boolean }) => {
+  const { scene } = useGLTF("/gltf/base.glb")
+
+  // Swap in the high-res stone texture only after the loader has finished
+  useEffect(() => {
+    if (!loadHighRes) return
+    let cancelled = false
+    new THREE.TextureLoader().load('/assets/stone.webp', (tex) => {
+      if (cancelled) return
+      tex.flipY = false
+      tex.colorSpace = THREE.SRGBColorSpace
+      tex.anisotropy = 8
+      tex.needsUpdate = true
+      scene.traverse((child) => {
+        if (!(child instanceof THREE.Mesh) || child.name.toLowerCase() !== 'stone') return
+        const mats = Array.isArray(child.material) ? child.material : [child.material]
+        mats.forEach((m: any) => {
+          const old = m.map
+          m.map = tex
+          m.needsUpdate = true
+          if (old && old !== tex) old.dispose()
+        })
+      })
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [loadHighRes, scene])
 
   const [doorTexture, doorBlueTexture] = useTexture([
-    '/assets/door.png',
-    '/assets/door_blue.png',
+    '/assets/door.webp',
+    '/assets/door_blue.webp',
   ])
 
   const grassPlaneMesh = useMemo(() => {
@@ -385,7 +410,7 @@ const Hero3DBase = ({ mountToken }: { mountToken: number }) => {
   useEffect(() => {
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        if (child.name === 'Mesh030' || child.material?.name === 'palermo') {
+        if (child.name.toLowerCase() === 'door' || child.name.toLowerCase().startsWith('door')) {
           child.material = doorMaterial
         }
         if (child.name === 'box_shadow' || child.name.toLowerCase().includes('shadow')) {
@@ -488,14 +513,6 @@ const Hero3DBase = ({ mountToken }: { mountToken: number }) => {
     <group ref={baseRef} position={[0, -25, -13]} rotation={[0.5, 0, 0]}>
       <primitive object={scene} />
       <InstancedGrass samplerMesh={grassPlaneMesh} />
-      <Suspense fallback={null}>
-        {!highResScene && (
-          <HighResModel
-            url="/gltf/base_high.glb"
-            onLoad={setHighResScene}
-          />
-        )}
-      </Suspense>
     </group>
   )
 }
@@ -588,10 +605,12 @@ export const HeroScenes = ({
   wobbleEnabled,
   mountToken,
   onReady,
+  loadHighRes = false,
 }: {
   wobbleEnabled: boolean
   mountToken: number
   onReady: () => void
+  loadHighRes?: boolean
 }) => {
   const baseScene = useMemo(() => new THREE.Scene(), [])
   const boxScene = useMemo(() => new THREE.Scene(), [])
@@ -621,14 +640,14 @@ export const HeroScenes = ({
       <CameraController />
       {createPortal(
         <Suspense fallback={null}>
-          <Hero3DBase mountToken={mountToken} />
+          <Hero3DBase mountToken={mountToken} loadHighRes={loadHighRes} />
           <SceneWarmup target={baseScene} onReady={handleReady} />
         </Suspense>,
         baseScene,
       )}
       {createPortal(
         <>
-          <Environment preset='forest' environmentIntensity={1} />
+        <ambientLight intensity={3} />
           <DirectionalLightWithControls />
           <Suspense fallback={null}>
             <Hero3DBox wobbleEnabled={wobbleEnabled} mountToken={mountToken} />

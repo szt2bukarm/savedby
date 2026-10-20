@@ -9,6 +9,7 @@ import { useAppContext } from './AppContext'
 import { usePathname } from 'next/navigation'
 
 gsap.registerPlugin(CustomEase, ScrollTrigger)
+ScrollTrigger.config({ ignoreMobileResize: true })
 
 
 

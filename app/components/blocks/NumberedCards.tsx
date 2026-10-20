@@ -2,7 +2,6 @@
 import { useRef, useEffect } from 'react'
 import gsap from 'gsap'
 import { useGSAP } from '@gsap/react'
-import { ScrollTrigger } from 'gsap/all'
 import type { NumberedCardsBlockProps } from '@/types/sanity'
 import { getSpacingClasses } from '@/app/utils/spacing'
 import ElevatedSwiper, {
@@ -15,7 +14,11 @@ import { animateSlotMachine } from '@/app/utils/animations'
 
 const TICK_MS = 3000
 
-function incrementNumberText(rawText: string, step = 0.01): string {
+// Placeholder shown before the first roll: the numeric part becomes "0.0", prefix/suffix kept
+const zeroDigits = (v: unknown) =>
+  String(v ?? '').replace(/(?:\d|,)+(?:\.\d+)?/, '0.0')
+
+function incrementNumberText(rawText: string, step?: number): string {
   const match = rawText.match(/^([^\d]*)((?:\d|,)+(?:\.\d+)?)(.*)$/)
 
   let prefix = ''
@@ -35,7 +38,8 @@ function incrementNumberText(rawText: string, step = 0.01): string {
     if (rawNumStr.includes('.')) decimals = rawNumStr.split('.')[1].length
   }
 
-  currentNum += step
+  // default: bump the last visible digit, so the text length stays the same (e.g. 500 -> 501)
+  currentNum += step ?? Math.pow(10, -decimals)
   currentNum = Math.round(currentNum * 10000) / 10000
 
   const naturalDecimals = currentNum.toString().includes('.')
@@ -57,6 +61,7 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const activeNumberRef = useRef<HTMLElement | null>(null)
   const lastValuesRef = useRef<string[]>([])
+  const hasRolledRef = useRef(false)
   if (lastValuesRef.current.length === 0 && cards.length > 0) {
     lastValuesRef.current = cards.map(c => String(c.number ?? ''))
   }
@@ -130,9 +135,12 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
 
         const section = sectionRef.current
         if (section) {
+          // First roll: numbers start at 0 and roll to their real values (no increment)
+          const isFirstRoll = !hasRolledRef.current
+          hasRolledRef.current = true
           for (let i = 0; i < cards.length; i++) {
             const oldText = lastValuesRef.current[i]
-            const newText = incrementNumberText(oldText)
+            const newText = isFirstRoll ? oldText : incrementNumberText(oldText)
             lastValuesRef.current[i] = newText
 
             section
@@ -151,21 +159,6 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
     },
     { dependencies: [card], revertOnUpdate: false },
   )
-
-  useGSAP(() => {
-    ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: "top 75%",
-      once: true,
-      onEnter: () => {
-        const numbers = sectionRef.current?.querySelectorAll<HTMLElement>('[data-part="number"]')
-        numbers?.forEach((el) => {
-          const val = el.getAttribute('data-val')
-          if (val) animateSlotMachine(el, val, undefined, false, "")
-        })
-      },
-    })
-  }, { scope: sectionRef })
 
   if (!cards.length) return null
 
@@ -209,11 +202,11 @@ export default function NumberedCards({ block }: NumberedCardsBlockProps) {
             </p>
             <p
               data-part="number"
-              data-val={card.number}
+              data-val={zeroDigits(card.number)}
               data-card-index={i}
               className="opacity-40 ml-auto text-black font-riforma-bold text-[44px] sm:text-[64px] lg:text-[100px] leading-[85%] tracking-[-6%]"
             >
-              {card.number}
+              {zeroDigits(card.number)}
             </p>
           </div>
         ))}

@@ -12,6 +12,7 @@ import { ScrollTrigger } from 'gsap/all'
 import GradientRevealText from '../common/GradientRevealText'
 import { useRive, Layout, Fit, Alignment } from '@rive-app/react-webgl2'
 import { RIVE_GATED, useRiveResize, useRiveRenderGate } from '@/app/utils/useRiveResize'
+import { useRivFile } from '@/app/utils/riveAssets';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger)
 
@@ -43,13 +44,14 @@ export default function CaseStudySlider({ block }: CaseStudySliderBlockProps) {
   const spacingClasses = getSpacingClasses(block?.spacing);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const { rive, canvas, container, RiveComponent } = useRive({
-    src: '/SavedBy.riv',
+  const riveFile = useRivFile();
+  const { rive, canvas, container, RiveComponent } = useRive(riveFile ? {
+    riveFile,
     artboard: 'Spinning Globe',
     stateMachines: 'State Machine 1',
     autoplay: true,
     layout: new Layout({ fit: Fit.Contain, alignment: Alignment.Center }),
-  }, RIVE_GATED);
+  } : undefined, RIVE_GATED);
   useRiveResize(rive, canvas, container);
   useRiveRenderGate(rive, canvas);
 

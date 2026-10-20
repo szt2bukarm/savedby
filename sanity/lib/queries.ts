@@ -196,7 +196,7 @@ const BLOCKS_FIELDS = groq`
           },
           companyName,
           textUnder,
-          "image": image ${IMAGE_ASSET}
+          "image": image { alt, "image": image ${IMAGE_ASSET} }
         }
       },
       _type == "caseStudyBlock" => {
